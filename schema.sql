@@ -11,7 +11,6 @@ CREATE TABLE empresas (
     rnc TEXT,
     creado TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
-
 CREATE TABLE usuarios (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     empresa_id INTEGER NOT NULL,
@@ -22,7 +21,6 @@ CREATE TABLE usuarios (
     FOREIGN KEY (empresa_id) REFERENCES empresas (id),
     UNIQUE (empresa_id, username)
 );
-
 CREATE TABLE productos (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     empresa_id INTEGER NOT NULL,
@@ -34,7 +32,6 @@ CREATE TABLE productos (
     creado TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (empresa_id) REFERENCES empresas (id)
 );
-
 CREATE TABLE ventas (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     transaccion_id TEXT NOT NULL,

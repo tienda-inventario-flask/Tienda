@@ -12,8 +12,6 @@ id_empresa_muestra = cur.lastrowid
 admin_password = generate_password_hash('admin123')
 cur.execute("INSERT INTO usuarios (empresa_id, username, password, rol) VALUES (?, ?, ?, ?)", (id_empresa_muestra, 'admin', admin_password, 'admin'))
 cur.execute("INSERT INTO productos (empresa_id, nombre, marca, modelo, precio, cantidad) VALUES (?, ?, ?, ?, ?, ?)", (id_empresa_muestra, 'Laptop Gamer Nitro 5', 'Acer', 'AN515-58', 1250.00, 8))
-cur.execute("INSERT INTO productos (empresa_id, nombre, marca, modelo, precio, cantidad) VALUES (?, ?, ?, ?, ?)", (id_empresa_muestra, 'Monitor Curvo Odyssey G5', 'Samsung', 'LC27G55T', 350.50, 15))
-
 connection.commit()
 connection.close()
 print("Base de datos inicializada con empresa de muestra y usuario admin.")
