@@ -1,85 +1,57 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Punto de Venta</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        #search-results { list-style-type: none; padding: 0; margin: 0; border: 1px solid #ddd; display: none; max-height: 200px; overflow-y: auto; background-color: white; position: absolute; z-index: 1000; width: calc(100% - 2rem);}
-        #search-results li { padding: 10px; cursor: pointer; }
-        #search-results li:hover { background-color: #f0f0f0; }
-        .pos-container { height: calc(100vh - 2rem); }
-        .cart-container { height: calc(100vh - 120px); display: flex; flex-direction: column;}
-        .cart-table-wrapper { flex-grow: 1; overflow-y: auto; }
-    </style>
-</head>
-<body class="bg-light">
-    <form id="sale-form" action="{{ url_for('procesar_venta') }}" method="POST">
-        <div class="container-fluid mt-3 pos-container">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h1 class="mb-0">Punto de Venta</h1>
-                <a href="{{ url_for('mostrar_inventario') }}" class="btn btn-secondary">Volver al Inventario</a>
-            </div>
-            {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}{% for category, message in messages %}<div class="alert alert-{{ category }}">{{ message }}</div>{% endfor %}{% endif %}{% endwith %}
-
-            <div class="row h-100">
-                <div class="col-md-4 h-100">
-                    <div class="card h-100">
-                        <div class="card-body">
-                            <label for="product-search" class="form-label fw-bold">Buscar Producto:</label>
-                            <div class="position-relative">
-                                <input type="text" id="product-search" class="form-control" placeholder="Escribe el nombre o marca...">
-                                <ul id="search-results" class="mt-1 rounded"></ul>
-                            </div>
-                            <hr>
-                            <h5 class="mt-4">Datos del Cliente (Opcional)</h5>
-                            <div class="mb-3">
-                                <label for="cliente_nombre" class="form-label">Nombre del Cliente:</label>
-                                <input type="text" id="cliente_nombre" name="cliente_nombre" class="form-control">
-                            </div>
-                            <div class="mb-3">
-                                <label for="cliente_telefono" class="form-label">Teléfono:</label>
-                                <input type="tel" id="cliente_telefono" name="cliente_telefono" class="form-control">
-                            </div>
-                        </div>
-                    </div>
+{% extends "base.html" %}
+{% block title %}Punto de Venta{% endblock %}
+{% block styles %}
+<style>
+    #search-results { list-style-type: none; padding: 0; margin: 0; border: 1px solid var(--border-color); display: none; max-height: 200px; overflow-y: auto; background-color: var(--surface-dark); position: absolute; z-index: 1000; width: 100%;}
+    #search-results li:hover { background-color: var(--primary-accent); color: var(--text-light); }
+    .pos-main-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 1.5rem; }
+    @media (max-width: 992px) { .pos-main-grid { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
+{% block content %}
+<form id="sale-form" action="{{ url_for('procesar_venta') }}" method="POST">
+    <div class="pos-main-grid">
+        <div class="card">
+            <div class="card-header"><h5 class="mb-0">1. Buscar Productos</h5></div>
+            <div class="card-body">
+                <label for="product-search" class="form-label fw-bold">Buscar por nombre o marca:</label>
+                <div class="position-relative">
+                    <input type="text" id="product-search" class="form-control" placeholder="Escribe para buscar...">
+                    <ul id="search-results" class="mt-1 rounded shadow"></ul>
                 </div>
+                <hr class="my-4">
+                <h5 class="mb-3">2. Datos del Cliente (Opcional)</h5>
+                <div class="mb-3"><label for="cliente_nombre" class="form-label">Nombre:</label><input type="text" id="cliente_nombre" name="cliente_nombre" class="form-control"></div>
+                <div class="mb-3"><label for="cliente_telefono" class="form-label">Teléfono:</label><input type="tel" id="cliente_telefono" name="cliente_telefono" class="form-control"></div>
+            </div>
+        </div>
 
-                <div class="col-md-8 h-100">
-                    <div class="card h-100 cart-container">
-                        <div class="card-header"><h4 class="mb-0">Carrito de Venta</h4></div>
-                        <div class="card-body cart-table-wrapper">
-                            <table class="table">
-                                <thead><tr><th>Producto</th><th>Precio</th><th style="width: 130px;">Cantidad</th><th>Subtotal</th><th></th></tr></thead>
-                                <tbody id="cart-table-body"></tbody>
-                            </table>
-                        </div>
-                        <div class="card-footer">
-                            <input type="hidden" name="cart_data" id="cart-data-input">
-                            <div class="d-flex justify-content-end align-items-center">
-                                <h3 class="me-4 mb-0">Total: <span id="cart-total">$0.00</span></h3>
-                                <button id="finalize-sale-btn" type="submit" class="btn btn-primary btn-lg" disabled>Finalizar Venta</button>
-                            </div>
-                        </div>
-                    </div>
+        <div class="card">
+            <div class="card-header"><h5 class="mb-0">3. Carrito de Venta</h5></div>
+            <div class="card-body">
+                <div class="table-responsive" style="max-height: 45vh; min-height: 200px;">
+                    <table class="table table-sm">
+                        <thead><tr><th>Producto</th><th>Precio</th><th style="width: 130px;" class="text-center">Cantidad</th><th class="text-end">Subtotal</th><th></th></tr></thead>
+                        <tbody id="cart-table-body">
+                            <tr><td colspan="5" class="text-center text-muted pt-5">El carrito está vacío</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer">
+                <input type="hidden" name="cart_data" id="cart-data-input">
+                <div class="d-flex justify-content-end align-items-center">
+                    <h3 class="me-4 mb-0">Total: <span id="cart-total" class="text-primary fw-bold">$0.00</span></h3>
+                    <button id="finalize-sale-btn" type="submit" class="btn btn-primary btn-lg" disabled><i class="bi bi-check-lg me-2"></i>Finalizar Venta</button>
                 </div>
             </div>
         </div>
-    </form>
-    
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        let cart = {};
-        const searchInput = document.getElementById('product-search'), searchResults = document.getElementById('search-results'), cartBody = document.getElementById('cart-table-body'), cartTotalSpan = document.getElementById('cart-total'), finalizeBtn = document.getElementById('finalize-sale-btn'), saleForm = document.getElementById('sale-form'), cartDataInput = document.getElementById('cart-data-input');
-        let debounceTimer;
-        searchInput.addEventListener('input', () => { clearTimeout(debounceTimer); debounceTimer = setTimeout(() => { const query = searchInput.value; if (query.length < 2) { searchResults.style.display = 'none'; return; } fetch(`/api/buscar_productos?q=${query}`).then(response => response.json()).then(data => displaySearchResults(data)); }, 300); });
-        function displaySearchResults(products) { searchResults.innerHTML = ''; if (products.length > 0) { products.forEach(product => { const li = document.createElement('li'); li.innerHTML = `${product.nombre} <small class="text-muted">(Stock: ${product.cantidad})</small>`; li.dataset.productId = product.id; li.dataset.productName = product.nombre; li.dataset.productPrice = product.precio; li.dataset.productStock = product.cantidad; li.classList.add('list-group-item', 'list-group-item-action'); searchResults.appendChild(li); }); searchResults.style.display = 'block'; } else { searchResults.style.display = 'none'; } }
-        searchResults.addEventListener('click', event => { if (event.target.tagName === 'LI') { const product = event.target.dataset; if (parseInt(product.productStock) > 0) { addToCart(product); } else { alert('Este producto no tiene stock disponible.'); } searchInput.value = ''; searchResults.style.display = 'none'; } });
-        function addToCart(product) { const id = product.productId; if (cart[id]) { if (cart[id].quantity < parseInt(product.productStock)) cart[id].quantity++; } else { cart[id] = { name: product.productName, price: parseFloat(product.productPrice), quantity: 1, stock: parseInt(product.productStock) }; } renderCart(); }
-        function renderCart() { cartBody.innerHTML = ''; let total = 0; for (const id in cart) { const item = cart[id]; const subtotal = item.quantity * item.price; total += subtotal; const tr = document.createElement('tr'); tr.innerHTML = `<td>${item.name}</td><td>$${item.price.toFixed(2)}</td><td><div class="input-group input-group-sm"><button class="btn btn-outline-secondary cart-qty-btn" data-id="${id}" data-action="decrement">-</button><input type="text" class="form-control text-center" value="${item.quantity}" readonly><button class="btn btn-outline-secondary cart-qty-btn" data-id="${id}" data-action="increment">+</button></div></td><td>$${subtotal.toFixed(2)}</td><td><button class="btn btn-danger btn-sm cart-remove-btn" data-id="${id}">X</button></td>`; cartBody.appendChild(tr); } cartTotalSpan.textContent = `$${total.toFixed(2)}`; finalizeBtn.disabled = Object.keys(cart).length === 0; }
-        cartBody.addEventListener('click', event => { const target = event.target; const id = target.dataset.id; if (!id) return; if (target.classList.contains('cart-qty-btn')) { const action = target.dataset.action; if (action === 'increment' && cart[id].quantity < cart[id].stock) cart[id].quantity++; else if (action === 'decrement' && cart[id].quantity > 1) cart[id].quantity--; } else if (target.classList.contains('cart-remove-btn')) { delete cart[id]; } renderCart(); });
-        saleForm.addEventListener('submit', function(event) { if (Object.keys(cart).length === 0) { event.preventDefault(); alert("El carrito está vacío."); return; } cartDataInput.value = JSON.stringify(cart); });
-    </script>
-</body>
-</html>
+    </div>
+</form>
+{% endblock %}
+{% block scripts %}
+<script>
+    // El script de pos.html no cambia, se puede usar el de la versión anterior.
+    let cart={};const searchInput=document.getElementById("product-search"),searchResults=document.getElementById("search-results"),cartBody=document.getElementById("cart-table-body"),cartTotalSpan=document.getElementById("cart-total"),finalizeBtn=document.getElementById("finalize-sale-btn"),saleForm=document.getElementById("sale-form"),cartDataInput=document.getElementById("cart-data-input");let debounceTimer;searchInput.addEventListener("input",()=>{clearTimeout(debounceTimer),debounceTimer=setTimeout(()=>{const e=searchInput.value;e.length<2?(searchResults.style.display="none",void 0):fetch(`/api/buscar_productos?q=${e}`).then(e=>e.json()).then(e=>displaySearchResults(e))},300)}),function displaySearchResults(e){searchResults.innerHTML="",e.length>0?(e.forEach(e=>{const t=document.createElement("li");t.innerHTML=`${e.nombre} <small class="text-muted">(Stock: ${e.cantidad})</small>`,t.dataset.productId=e.id,t.dataset.productName=e.nombre,t.dataset.productPrice=e.precio,t.dataset.productStock=e.cantidad,t.classList.add("list-group-item","list-group-item-action","bg-transparent","border-0","px-2","py-2"),searchResults.appendChild(t)}),searchResults.style.display="block"):searchResults.style.display="none"}searchResults.addEventListener("click",e=>{if("LI"===e.target.tagName){const t=e.target.dataset;parseInt(t.productStock)>0?addToCart(t):alert("Este producto no tiene stock disponible."),searchInput.value="",searchResults.style.display="none"}}),function addToCart(e){const t=e.productId;cart[t]?cart[t].quantity<parseInt(e.productStock)&&cart[t].quantity++:cart[t]={name:e.productName,price:parseFloat(e.productPrice),quantity:1,stock:parseInt(e.productStock)},renderCart()}function renderCart(){if(cartBody.innerHTML="",0===Object.keys(cart).length)return cartBody.innerHTML='<tr><td colspan="5" class="text-center text-muted pt-5">El carrito está vacío</td></tr>',cartTotalSpan.textContent="$0.00",void(finalizeBtn.disabled=!0);let e=0;for(const t in cart){const o=cart[t],a=o.quantity*o.price;e+=a;const n=document.createElement("tr");n.innerHTML=`<td>${o.name}</td><td>$${o.price.toFixed(2)}</td><td class="text-center"><div class="input-group input-group-sm"><button type="button" class="btn btn-outline-secondary cart-qty-btn" data-id="${t}" data-action="decrement">-</button><input type="text" class="form-control text-center bg-dark" value="${o.quantity}" readonly><button type="button" class="btn btn-outline-secondary cart-qty-btn" data-id="${t}" data-action="increment">+</button></div></td><td class="text-end">$${a.toFixed(2)}</td><td><button type="button" class="btn btn-danger btn-sm cart-remove-btn" data-id="${t}">X</button></td>`,cartBody.appendChild(n)}cartTotalSpan.textContent=`$${e.toFixed(2)}`,finalizeBtn.disabled=0===Object.keys(cart).length}cartBody.addEventListener("click",e=>{const t=e.target,o=t.dataset.id;o&&(t.classList.contains("cart-qty-btn")?("increment"===t.dataset.action&&cart[o].quantity<cart[o].stock?cart[o].quantity++:"decrement"===t.dataset.action&&cart[o].quantity>1&&cart[o].quantity--):t.classList.contains("cart-remove-btn")&&delete cart[o],renderCart())}),saleForm.addEventListener("submit",function(e){return 0===Object.keys(cart).length?(e.preventDefault(),void alert("El carrito está vacío.")):void(cartDataInput.value=JSON.stringify(cart))});
+</script>
+{% endblock %}

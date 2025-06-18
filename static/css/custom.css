@@ -1,23 +1,105 @@
 /* static/css/custom.css */
 
-/* Cambiamos el color de fondo general de la aplicación */
+/* 1. Importar una tipografía moderna de Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+
+/* 2. Definir nuestra paleta de colores en variables para fácil mantenimiento */
+:root {
+    --bg-dark: #1a1c23;
+    --surface-dark: #242731;
+    --primary-accent: #7f5af0;
+    --primary-accent-hover: #6b4eda;
+    --secondary-accent: #2cb67d;
+    --text-light: #fffffe;
+    --text-muted: #94a1b2;
+    --border-color: #40434E;
+}
+
+/* 3. Aplicar estilos base */
 body {
-    background-color: #f0f2f5; /* Un gris un poco más suave */
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-dark);
+    color: var(--text-light);
 }
 
-/* Damos una sombra más pronunciada a las tarjetas para que resalten */
+/* 4. Personalizar componentes de Bootstrap */
 .card {
-    border: none;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+    background-color: var(--surface-dark);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    transition: transform 0.2s ease-in-out;
 }
 
-/* Personalizamos el color primario de los botones */
+.card:hover {
+    transform: translateY(-5px);
+}
+
+.card-header {
+    background-color: rgba(0,0,0,0.2);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.table {
+    --bs-table-bg: var(--surface-dark);
+    --bs-table-color: var(--text-light);
+    --bs-table-striped-bg: #2a2d39;
+    --bs-table-striped-color: var(--text-light);
+    --bs-table-hover-bg: #323542;
+    --bs-table-hover-color: var(--text-light);
+    --bs-table-border-color: var(--border-color);
+}
+
+.table-dark {
+     --bs-table-bg: var(--primary-accent);
+     --bs-table-border-color: var(--primary-accent-hover);
+}
+
 .btn-primary {
-    background-color: #5a4fcf;
-    border-color: #5a4fcf;
+    background-color: var(--primary-accent);
+    border-color: var(--primary-accent);
+}
+.btn-primary:hover {
+    background-color: var(--primary-accent-hover);
+    border-color: var(--primary-accent-hover);
 }
 
-.btn-primary:hover {
-    background-color: #493fb0;
-    border-color: #493fb0;
+.btn-success {
+    background-color: var(--secondary-accent);
+    border-color: var(--secondary-accent);
+}
+
+.form-control {
+    background-color: var(--bg-dark);
+    border-color: var(--border-color);
+    color: var(--text-light);
+}
+.form-control:focus {
+    background-color: var(--bg-dark);
+    border-color: var(--primary-accent);
+    box-shadow: 0 0 0 0.25rem rgba(127, 90, 240, 0.25);
+    color: var(--text-light);
+}
+.form-select {
+    background-color: var(--bg-dark);
+    border-color: var(--border-color);
+    color: var(--text-light);
+}
+
+.alert {
+    border-radius: 0.5rem;
+}
+
+.dropdown-menu {
+    background-color: var(--surface-dark);
+    border-color: var(--border-color);
+}
+.dropdown-item {
+    color: var(--text-light);
+}
+.dropdown-item:hover {
+    background-color: var(--primary-accent);
+    color: var(--text-light);
+}
+.dropdown-divider {
+    border-top: 1px solid var(--border-color);
 }

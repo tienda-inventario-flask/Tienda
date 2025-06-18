@@ -1,68 +1,30 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Administrar Usuarios</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-</head>
-<body class="bg-light">
-    <div class="container mt-4">
-        <div class="d-flex justify-content-between align-items-center bg-white p-3 mb-4 rounded shadow-sm">
-            <div>
-                <a href="{{ url_for('mostrar_inventario') }}" class="btn btn-primary btn-sm">Volver al Inventario</a>
-                <span class="fw-bold ms-3">Panel de Administración de Usuarios</span>
-            </div>
-            <a href="{{ url_for('logout') }}" class="btn btn-secondary btn-sm">Cerrar Sesión</a>
-        </div>
-        
-        {% with messages = get_flashed_messages(with_categories=true) %}
-          {% if messages %}{% for category, message in messages %}<div class="alert alert-{{ category }} alert-dismissible fade show">{{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>{% endfor %}{% endif %}
-        {% endwith %}
-
-        <div class="d-flex justify-content-end mb-3">
-            <a href="{{ url_for('agregar_usuario') }}" class="btn btn-success">
-                <i class="bi bi-plus-circle"></i> Añadir Nuevo Empleado
-            </a>
-        </div>
-
+{% extends "base.html" %}
+{% block title %}Administrar Usuarios{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="mb-0">Panel de Administración de Usuarios</h1>
+    <a href="{{ url_for('agregar_usuario') }}" class="btn btn-success"><i class="bi bi-plus-circle me-1"></i> Añadir Empleado</a>
+</div>
+<div class="card">
+    <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-striped table-hover table-bordered align-middle">
-                <thead class="table-dark">
-                    <tr>
-                        <th>ID</th>
-                        <th>Username</th>
-                        <th>Rol</th>
-                        <th>Fecha de Registro</th>
-                        <th style="width: 280px;">Acciones</th>
-                    </tr>
-                </thead>
+            <table class="table table-hover table-striped align-middle mb-0">
+                <thead><tr><th>ID</th><th>Username</th><th>Rol</th><th>Fecha de Registro</th><th style="width: 300px;">Acciones</th></tr></thead>
                 <tbody>
                     {% for usuario in usuarios %}
                     <tr>
-                        <td>{{ usuario.id }}</td>
-                        <td>{{ usuario.username }}</td>
+                        <td>{{ usuario.id }}</td><td>{{ usuario.username }}</td>
                         <td>
                             <form action="{{ url_for('cambiar_rol', usuario_id=usuario.id) }}" method="POST" class="d-flex align-items-center">
-                                <select name="rol" class="form-select form-select-sm" {% if session.user_id == usuario.id %}disabled{% endif %}>
-                                    <option value="empleado" {% if usuario.rol == 'empleado' %}selected{% endif %}>Empleado</option>
-                                    <option value="admin" {% if usuario.rol == 'admin' %}selected{% endif %}>Admin</option>
-                                </select>
-                                {% if session.user_id != usuario.id %}
-                                <button type="submit" class="btn btn-primary btn-sm ms-2">Cambiar</button>
-                                {% endif %}
+                                <select name="rol" class="form-select form-select-sm" {% if session.user_id==usuario.id %}disabled{% endif %}><option value="empleado" {% if usuario.rol=='empleado' %}selected{% endif %}>Empleado</option><option value="admin" {% if usuario.rol=='admin' %}selected{% endif %}>Admin</option></select>
+                                {% if session.user_id != usuario.id %}<button type="submit" class="btn btn-primary btn-sm ms-2">Cambiar</button>{% endif %}
                             </form>
                         </td>
                         <td>{{ usuario.creado.strftime('%Y-%m-%d') }}</td>
                         <td>
                             {% if session.user_id != usuario.id %}
-                            <a href="{{ url_for('eliminar_usuario', usuario_id=usuario.id) }}" class="btn btn-danger btn-sm" onclick="return confirm('¿Estás seguro de que quieres eliminar a este usuario? Esta acción es irreversible.');">
-                                Eliminar Usuario
-                            </a>
-                            {% else %}
-                            <button class="btn btn-danger btn-sm" disabled>Eliminar Usuario</button>
-                            {% endif %}
+                            <a href="{{ url_for('eliminar_usuario', usuario_id=usuario.id) }}" class="btn btn-danger btn-sm" onclick="return confirm('¿Estás seguro?');">Eliminar Usuario</a>
+                            {% else %}<button class="btn btn-danger btn-sm" disabled>Eliminar Usuario</button>{% endif %}
                         </td>
                     </tr>
                     {% endfor %}
@@ -70,6 +32,5 @@
             </table>
         </div>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+</div>
+{% endblock %}
