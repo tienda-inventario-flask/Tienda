@@ -1,4 +1,5 @@
 import os
+import sqlite3
 import math
 import io
 import csv
@@ -11,15 +12,12 @@ from flask import Flask, render_template, request, redirect, url_for, flash, ses
 from functools import wraps
 from dotenv import load_dotenv
 
-# Carga las variables de entorno del archivo .env (para desarrollo local)
 load_dotenv()
 
 app = Flask(__name__)
-# La clave secreta ahora se lee de una variable de entorno para mayor seguridad en producción
-app.secret_key = os.environ.get('SECRET_KEY', 'ricardo123')
+app.secret_key = os.environ.get('SECRET_KEY', 'una_clave_secreta_por_defecto_para_desarrollo_local')
 PER_PAGE = 5
 
-# --- FUNCIÓN DE CONEXIÓN A POSTGRESQL ---
 def get_db_connection():
     try:
         conn = psycopg2.connect(os.environ.get('DATABASE_URL'))
@@ -28,7 +26,6 @@ def get_db_connection():
         print(f"Error de conexión a la base de datos: {e}")
         return None
 
-# --- DECORADORES DE SEGURIDAD ---
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -47,7 +44,6 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-# --- RUTAS DE AUTENTICACIÓN ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if 'user_id' in session: return redirect(url_for('mostrar_inventario'))
@@ -109,7 +105,53 @@ def logout():
     flash('Has cerrado sesión exitosamente.', 'success')
     return redirect(url_for('login'))
 
-# --- RUTAS PRINCIPALES Y CRUD ---
+@app.route('/empresa/editar', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def editar_empresa():
+    empresa_id = session['empresa_id']
+    conn = get_db_connection()
+    if request.method == 'POST':
+        nombre_empresa, direccion, telefono, rnc = request.form['nombre_empresa'], request.form['direccion'], request.form['telefono'], request.form['rnc']
+        if not nombre_empresa: flash('El nombre de la empresa no puede estar vacío.', 'danger')
+        else:
+            with conn.cursor() as cur:
+                cur.execute('UPDATE empresas SET nombre_empresa = %s, direccion = %s, telefono = %s, rnc = %s WHERE id = %s',
+                             (nombre_empresa, direccion, telefono, rnc, empresa_id))
+            conn.commit()
+            session['nombre_empresa'] = nombre_empresa
+            flash('Datos de la empresa actualizados con éxito.', 'success')
+        conn.close()
+        return redirect(url_for('editar_empresa'))
+    with conn.cursor(cursor_factory=DictCursor) as cur:
+        cur.execute('SELECT * FROM empresas WHERE id = %s', (empresa_id,))
+        empresa = cur.fetchone()
+    conn.close()
+    return render_template('editar_empresa.html', empresa=empresa)
+
+@app.route('/perfil/cambiar_password', methods=['GET', 'POST'])
+@login_required
+def cambiar_password():
+    if request.method == 'POST':
+        password_actual, nueva_password, confirmar_password = request.form['password_actual'], request.form['nueva_password'], request.form['confirmar_password']
+        if not nueva_password or nueva_password != confirmar_password:
+            flash('Las nuevas contraseñas no coinciden o están vacías.', 'danger')
+            return redirect(url_for('cambiar_password'))
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=DictCursor) as cur:
+            cur.execute('SELECT password FROM usuarios WHERE id = %s', (session['user_id'],))
+            user = cur.fetchone()
+            if not check_password_hash(user['password'], password_actual):
+                flash('La contraseña actual es incorrecta.', 'danger')
+            else:
+                hashed_password = generate_password_hash(nueva_password)
+                cur.execute('UPDATE usuarios SET password = %s WHERE id = %s', (hashed_password, session['user_id']))
+                conn.commit()
+                flash('Contraseña actualizada con éxito.', 'success')
+        conn.close()
+        return redirect(url_for('cambiar_password'))
+    return render_template('cambiar_password.html')
+
 @app.route('/')
 @login_required
 def mostrar_inventario():
@@ -118,10 +160,11 @@ def mostrar_inventario():
     with conn.cursor(cursor_factory=DictCursor) as cur:
         empresa_id, page, query = session['empresa_id'], request.args.get('page', 1, type=int), request.args.get('q')
         offset = (page - 1) * PER_PAGE
-        base_where, params = ' WHERE empresa_id = %s ', [empresa_id]
+        base_where = ' WHERE empresa_id = %s '
+        params = [empresa_id]
         if query:
             search_term = f"%{query}%"
-            where_clause = base_where + ' AND (nombre ILIKE %s OR marca ILIKE %s)'
+            where_clause = base_where + ' AND (nombre ILIKE %s OR marca ILIKE %s)' # ILIKE es para PostgreSQL
             params.extend([search_term, search_term])
         else: where_clause = base_where
         cur.execute('SELECT COUNT(id) AS total FROM productos' + where_clause, params)
@@ -194,7 +237,6 @@ def eliminar_producto(producto_id):
     flash('Producto eliminado.', 'danger')
     return redirect(url_for('mostrar_inventario'))
 
-# --- RUTAS DE REPORTES, ADMIN Y POS ---
 @app.route('/reportes')
 @login_required
 def reportes():
@@ -241,6 +283,28 @@ def gestionar_usuarios():
     conn.close()
     return render_template('admin_usuarios.html', usuarios=usuarios)
 
+@app.route('/admin/agregar_usuario', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def agregar_usuario():
+    if request.method == 'POST':
+        username, password, rol = request.form['username'], request.form['password'], 'empleado'
+        empresa_id = session['empresa_id']
+        conn = get_db_connection()
+        with conn.cursor(cursor_factory=DictCursor) as cur:
+            cur.execute('SELECT id FROM usuarios WHERE username = %s AND empresa_id = %s', (username, empresa_id))
+            if cur.fetchone():
+                flash('Ya existe un usuario con ese nombre en tu empresa.', 'danger')
+            else:
+                hashed_password = generate_password_hash(password)
+                cur.execute('INSERT INTO usuarios (empresa_id, username, password, rol) VALUES (%s, %s, %s, %s)', (empresa_id, username, hashed_password, rol))
+                conn.commit()
+                flash(f'El empleado "{username}" ha sido creado con éxito.', 'success')
+                conn.close()
+                return redirect(url_for('gestionar_usuarios'))
+        conn.close()
+    return render_template('agregar_usuario.html')
+
 @app.route('/admin/cambiar_rol/<int:usuario_id>', methods=['POST'])
 @login_required
 @admin_required
@@ -274,53 +338,6 @@ def eliminar_usuario(usuario_id):
     conn.close()
     flash('Usuario eliminado con éxito.', 'success')
     return redirect(url_for('gestionar_usuarios'))
-
-@app.route('/empresa/editar', methods=['GET', 'POST'])
-@login_required
-@admin_required
-def editar_empresa():
-    empresa_id = session['empresa_id']
-    conn = get_db_connection()
-    if request.method == 'POST':
-        nombre_empresa, direccion, telefono, rnc = request.form['nombre_empresa'], request.form['direccion'], request.form['telefono'], request.form['rnc']
-        if not nombre_empresa: flash('El nombre de la empresa no puede estar vacío.', 'danger')
-        else:
-            with conn.cursor() as cur:
-                cur.execute('UPDATE empresas SET nombre_empresa = %s, direccion = %s, telefono = %s, rnc = %s WHERE id = %s',
-                             (nombre_empresa, direccion, telefono, rnc, empresa_id))
-            conn.commit()
-            session['nombre_empresa'] = nombre_empresa
-            flash('Datos de la empresa actualizados con éxito.', 'success')
-        conn.close()
-        return redirect(url_for('editar_empresa'))
-    with conn.cursor(cursor_factory=DictCursor) as cur:
-        cur.execute('SELECT * FROM empresas WHERE id = %s', (empresa_id,))
-        empresa = cur.fetchone()
-    conn.close()
-    return render_template('editar_empresa.html', empresa=empresa)
-
-@app.route('/perfil/cambiar_password', methods=['GET', 'POST'])
-@login_required
-def cambiar_password():
-    if request.method == 'POST':
-        password_actual, nueva_password, confirmar_password = request.form['password_actual'], request.form['nueva_password'], request.form['confirmar_password']
-        if not nueva_password or nueva_password != confirmar_password:
-            flash('Las nuevas contraseñas no coinciden o están vacías.', 'danger')
-            return redirect(url_for('cambiar_password'))
-        conn = get_db_connection()
-        with conn.cursor(cursor_factory=DictCursor) as cur:
-            cur.execute('SELECT password FROM usuarios WHERE id = %s', (session['user_id'],))
-            user = cur.fetchone()
-            if not check_password_hash(user['password'], password_actual):
-                flash('La contraseña actual es incorrecta.', 'danger')
-            else:
-                hashed_password = generate_password_hash(nueva_password)
-                cur.execute('UPDATE usuarios SET password = %s WHERE id = %s', (hashed_password, session['user_id']))
-                conn.commit()
-                flash('Contraseña actualizada con éxito.', 'success')
-        conn.close()
-        return redirect(url_for('cambiar_password'))
-    return render_template('cambiar_password.html')
 
 @app.route('/pos')
 @login_required
@@ -399,8 +416,7 @@ def procesar_venta():
 def mostrar_factura(transaccion_id):
     conn = get_db_connection()
     with conn.cursor(cursor_factory=DictCursor) as cur:
-        cur.execute('SELECT v.cantidad, v.precio_total, v.cliente_nombre, v.cliente_telefono, p.nombre FROM ventas v JOIN productos p ON v.producto_id = p.id WHERE v.transaccion_id = %s AND v.empresa_id = %s',
-                                    (transaccion_id, session['empresa_id']))
+        cur.execute('SELECT v.cantidad, v.precio_total, v.cliente_nombre, v.cliente_telefono, p.nombre FROM ventas v JOIN productos p ON v.producto_id = p.id WHERE v.transaccion_id = %s AND v.empresa_id = %s', (transaccion_id, session['empresa_id']))
         items_vendidos = cur.fetchall()
         if not items_vendidos:
             flash('Factura no encontrada.', 'danger')
@@ -413,4 +429,13 @@ def mostrar_factura(transaccion_id):
     conn.close()
     total_general = sum(item['precio_total'] for item in items_vendidos)
     cliente_nombre, cliente_telefono = items_vendidos[0]['cliente_nombre'], items_vendidos[0]['cliente_telefono']
-    return render_template('factura.html', transaccion_id=transaccion_id, items_vendidos=items_vendidos, empresa=empresa, fecha_venta=primera_venta['fecha_venta'].strftime('%Y-%m-%d'), total_general=total_general, cliente_nombre=cliente_nombre, cliente_telefono=cliente_telefono)
+    # APLICAMOS LA CORRECCIÓN AQUÍ
+    fecha_formateada = primera_venta['fecha_venta'].strftime('%Y-%m-%d')
+    return render_template('factura.html',
+                           transaccion_id=transaccion_id,
+                           items_vendidos=items_vendidos,
+                           empresa=empresa,
+                           fecha_venta=fecha_formateada,
+                           total_general=total_general,
+                           cliente_nombre=cliente_nombre,
+                           cliente_telefono=cliente_telefono)
