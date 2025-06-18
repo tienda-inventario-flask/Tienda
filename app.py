@@ -16,8 +16,8 @@ load_dotenv()
 
 app = Flask(__name__)
 # La clave secreta ahora se lee de una variable de entorno para mayor seguridad en producción
-app.secret_key = os.environ.get('SECRET_KEY', 'ricardo123')
-PER_PAGE = 5
+app.secret_key = os.environ.get('SECRET_KEY', 'una_clave_secreta_por_defecto_para_desarrollo_local')
+PER_PAGE = 10 # Items por página para paginación
 
 # --- FUNCIÓN DE CONEXIÓN A POSTGRESQL ---
 def get_db_connection():
@@ -28,12 +28,10 @@ def get_db_connection():
         print(f"Error de conexión a la base de datos: {e}")
         return None
 
-# --- NUEVA FUNCIÓN PARA REGISTRAR ACTIVIDAD ---
+# --- FUNCIÓN PARA REGISTRAR ACTIVIDAD ---
 def registrar_actividad(accion, descripcion=""):
-    # Si no hay un usuario en la sesión, no se puede registrar la actividad.
     if 'user_id' not in session:
         return
-    
     conn = get_db_connection()
     if conn:
         try:
@@ -47,7 +45,6 @@ def registrar_actividad(accion, descripcion=""):
             print(f"Error al registrar actividad: {e}")
         finally:
             conn.close()
-
 
 # --- DECORADORES DE SEGURIDAD ---
 def login_required(f):
@@ -83,13 +80,9 @@ def login():
                     cur.execute('SELECT nombre_empresa FROM empresas WHERE id = %s', (user['empresa_id'],))
                     empresa = cur.fetchone()
                     session.clear()
-                    session['user_id'] = user['id']
-                    session['username'] = user['username']
-                    session['rol'] = user['rol']
-                    session['empresa_id'] = user['empresa_id']
-                    session['nombre_empresa'] = empresa['nombre_empresa']
-                    registrar_actividad('INICIO_SESION', f"El usuario '{user['username']}' ha iniciado sesión.")
+                    session['user_id'], session['username'], session['rol'], session['empresa_id'], session['nombre_empresa'] = user['id'], user['username'], user['rol'], user['empresa_id'], empresa['nombre_empresa']
                     conn.close()
+                    registrar_actividad('INICIO_SESION', f"El usuario '{user['username']}' ha iniciado sesión.")
                     return redirect(url_for('mostrar_inventario'))
             flash('Nombre de usuario o contraseña incorrectos.', 'danger')
             conn.close()
@@ -229,10 +222,10 @@ def agregar_producto():
         nombre, marca, modelo = request.form['nombre'], request.form['marca'], request.form['modelo']
         precio, cantidad = float(request.form['precio']), int(request.form['cantidad'])
         conn = get_db_connection()
-        with conn.cursor() as cur:
+        with conn.cursor(cursor_factory=DictCursor) as cur:
             cur.execute('INSERT INTO productos (empresa_id, nombre, marca, modelo, precio, cantidad) VALUES (%s, %s, %s, %s, %s, %s) RETURNING id',
                         (session['empresa_id'], nombre, marca, modelo, precio, cantidad))
-            producto_id = cur.fetchone()[0]
+            producto_id = cur.fetchone()['id']
         conn.commit()
         conn.close()
         descripcion_log = f"Creó el producto '{nombre}' (ID: {producto_id})."
@@ -254,8 +247,7 @@ def editar_producto(producto_id):
         precio, cantidad = float(request.form['precio']), int(request.form['cantidad'])
         conn = get_db_connection()
         with conn.cursor() as cur:
-            cur.execute('UPDATE productos SET nombre = %s, marca = %s, modelo = %s, precio = %s, cantidad = %s WHERE id = %s AND empresa_id = %s',
-                        (nombre, marca, modelo, precio, cantidad, producto_id, session['empresa_id']))
+            cur.execute('UPDATE productos SET nombre = %s, marca = %s, modelo = %s, precio = %s, cantidad = %s WHERE id = %s AND empresa_id = %s',(nombre, marca, modelo, precio, cantidad, producto_id, session['empresa_id']))
         conn.commit()
         conn.close()
         descripcion_log = f"Editó el producto '{nombre}' (ID: {producto_id})."
@@ -286,7 +278,6 @@ def eliminar_producto(producto_id):
 @app.route('/reportes')
 @login_required
 def reportes():
-    # ... (código sin cambios) ...
     conn = get_db_connection()
     with conn.cursor(cursor_factory=DictCursor) as cur:
         empresa_id = session['empresa_id']
@@ -302,7 +293,6 @@ def reportes():
 @app.route('/exportar_csv')
 @login_required
 def exportar_csv():
-    # ... (código sin cambios) ...
     conn = get_db_connection()
     with conn.cursor() as cur:
         cur.execute('SELECT id, nombre, marca, modelo, precio, cantidad FROM productos WHERE empresa_id = %s ORDER BY id', (session['empresa_id'],))
@@ -321,7 +311,6 @@ def exportar_csv():
 @login_required
 @admin_required
 def gestionar_usuarios():
-    # ... (código sin cambios) ...
     conn = get_db_connection()
     with conn.cursor(cursor_factory=DictCursor) as cur:
         cur.execute('SELECT id, username, rol, creado FROM usuarios WHERE empresa_id = %s ORDER BY username', (session['empresa_id'],))
@@ -333,7 +322,6 @@ def gestionar_usuarios():
 @login_required
 @admin_required
 def agregar_usuario():
-    # ... (código sin cambios) ...
     if request.method == 'POST':
         username, password, rol = request.form['username'], request.form['password'], 'empleado'
         empresa_id = session['empresa_id']
@@ -360,7 +348,6 @@ def agregar_usuario():
 @login_required
 @admin_required
 def cambiar_rol(usuario_id):
-    # ... (código sin cambios, pero añadimos logging) ...
     if usuario_id == session['user_id']:
         flash('No puedes cambiar tu propio rol.', 'danger')
         return redirect(url_for('gestionar_usuarios'))
@@ -384,7 +371,6 @@ def cambiar_rol(usuario_id):
 @login_required
 @admin_required
 def eliminar_usuario(usuario_id):
-    # ... (código sin cambios, pero añadimos logging) ...
     if usuario_id == session['user_id']:
         flash('No puedes eliminarte a ti mismo.', 'danger')
         return redirect(url_for('gestionar_usuarios'))
@@ -403,6 +389,23 @@ def eliminar_usuario(usuario_id):
     conn.close()
     return redirect(url_for('gestionar_usuarios'))
 
+@app.route('/admin/historial')
+@login_required
+@admin_required
+def ver_historial():
+    conn = get_db_connection()
+    page = request.args.get('page', 1, type=int)
+    offset = (page - 1) * PER_PAGE
+    with conn.cursor(cursor_factory=DictCursor) as cur:
+        cur.execute('SELECT COUNT(id) AS total FROM historial_actividad WHERE empresa_id = %s', (session['empresa_id'],))
+        total_items = cur.fetchone()['total'] or 0
+        total_pages = math.ceil(total_items / PER_PAGE)
+        cur.execute('SELECT * FROM historial_actividad WHERE empresa_id = %s ORDER BY fecha DESC LIMIT %s OFFSET %s',
+                    (session['empresa_id'], PER_PAGE, offset))
+        historial = cur.fetchall()
+    conn.close()
+    return render_template('admin_historial.html', historial=historial, page=page, total_pages=total_pages)
+
 @app.route('/pos')
 @login_required
 def pos(): return render_template('pos.html')
@@ -410,7 +413,6 @@ def pos(): return render_template('pos.html')
 @app.route('/api/buscar_productos')
 @login_required
 def buscar_productos_api():
-    # ... (código sin cambios) ...
     query = request.args.get('q', '')
     if len(query) < 2: return jsonify([])
     conn = get_db_connection()
@@ -424,7 +426,6 @@ def buscar_productos_api():
 @app.route('/api/actualizar_stock/<int:producto_id>', methods=['POST'])
 @login_required
 def actualizar_stock(producto_id):
-    # ... (código sin cambios, pero añadimos logging) ...
     data = request.get_json()
     action = data.get('action')
     if not action or action not in ['incrementar', 'decrementar']: return jsonify({'success': False, 'message': 'Acción no válida.'}), 400
@@ -441,14 +442,13 @@ def actualizar_stock(producto_id):
         cur.execute('UPDATE productos SET cantidad = %s WHERE id = %s AND empresa_id = %s', (nueva_cantidad, producto_id, session['empresa_id']))
     conn.commit()
     conn.close()
-    descripcion_log = f"Ajustó el stock del producto '{producto['nombre']}' (ID: {producto_id}) de {producto['cantidad']} a {nueva_cantidad}."
+    descripcion_log = f"Ajustó el stock de '{producto['nombre']}' (ID: {producto_id}) de {producto['cantidad']} a {nueva_cantidad}."
     registrar_actividad('STOCK_AJUSTADO', descripcion_log)
     return jsonify({'success': True, 'nueva_cantidad': nueva_cantidad})
 
 @app.route('/procesar_venta', methods=['POST'])
 @login_required
 def procesar_venta():
-    # ... (código sin cambios, pero añadimos logging) ...
     cart_json = request.form.get('cart_data')
     cliente_nombre, cliente_telefono = request.form.get('cliente_nombre', 'Cliente Contado'), request.form.get('cliente_telefono', '')
     if not cliente_nombre.strip(): cliente_nombre = 'Cliente Contado'
@@ -471,7 +471,7 @@ def procesar_venta():
                 cur.execute('INSERT INTO ventas (transaccion_id, empresa_id, producto_id, usuario_id, cantidad, precio_total, cliente_nombre, cliente_telefono) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)',
                              (transaccion_id, empresa_id, producto_id, usuario_id, cantidad_vendida, precio_total, cliente_nombre, cliente_telefono))
         conn.commit()
-        descripcion_log = f"Registró la venta #{transaccion_id[:8]} para el cliente '{cliente_nombre}'."
+        descripcion_log = f"Registró la venta #{transaccion_id[:8]} para el cliente '{cliente_nombre}' por un total de {sum(item['quantity'] * item['price'] for item in cart_data.values()):.2f}."
         registrar_actividad('VENTA_REGISTRADA', descripcion_log)
         return redirect(url_for('mostrar_factura', transaccion_id=transaccion_id))
     except Exception as e:
@@ -484,7 +484,6 @@ def procesar_venta():
 @app.route('/factura/<string:transaccion_id>')
 @login_required
 def mostrar_factura(transaccion_id):
-    # ... (código sin cambios) ...
     conn = get_db_connection()
     with conn.cursor(cursor_factory=DictCursor) as cur:
         cur.execute('SELECT v.cantidad, v.precio_total, v.cliente_nombre, v.cliente_telefono, p.nombre FROM ventas v JOIN productos p ON v.producto_id = p.id WHERE v.transaccion_id = %s AND v.empresa_id = %s', (transaccion_id, session['empresa_id']))
