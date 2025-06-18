@@ -2,7 +2,7 @@
 {% block title %}Dashboard de Inventario{% endblock %}
 {% block styles %}
 <style>
-    .table .table-danger, .table .table-danger > th, .table .table-danger > td { background-color: #f8d7da; color: #58151c; font-weight: 500; }
+    .table .table-danger, .table .table-danger > th, .table .table-danger > td { background-color: #58151c !important; color: #fff !important; --bs-table-border-color: #a62f3a; }
     .stock-control { display: flex; align-items: center; justify-content: center; min-width: 90px; }
     .stock-control .btn { padding: .1rem .4rem; font-size: .8rem; }
 </style>
@@ -12,26 +12,29 @@
     <h1 class="mb-0">Dashboard</h1>
     {% if session.rol == 'admin' %}<a href="{{ url_for('agregar_producto') }}" class="btn btn-primary"><i class="bi bi-plus-circle me-1"></i> Añadir Producto</a>{% endif %}
 </div>
-<p class="text-muted mb-4">Un resumen del estado actual de tu inventario.</p>
+<p class="text-white-50 mb-4">Un resumen del estado actual de tu inventario.</p>
 <div class="row mb-4">
-    <div class="col-md-4 mb-3"><div class="card text-center"><div class="card-header fw-bold text-muted text-uppercase small">Productos Únicos</div><div class="card-body py-4"><h2 class="card-title fw-bold display-4 text-primary">{{ total_productos }}</h2></div></div></div>
-    <div class="col-md-4 mb-3"><div class="card text-center"><div class="card-header fw-bold text-muted text-uppercase small">Total de Artículos</div><div class="card-body py-4"><h2 class="card-title fw-bold display-4">{{ total_stock }}</h2></div></div></div>
-    <div class="col-md-4 mb-3"><div class="card text-center"><div class="card-header fw-bold text-muted text-uppercase small">Valor del Inventario</div><div class="card-body py-4"><h2 class="card-title fw-bold display-4">${{ "%.2f"|format(valor_inventario) }}</h2></div></div></div>
+    <div class="col-md-4 mb-3"><div class="card text-center"><div class="card-header fw-bold text-white-50 text-uppercase small">Productos Únicos</div><div class="card-body py-4"><h2 class="card-title fw-bold display-4 text-primary">{{ total_productos }}</h2></div></div></div>
+    <div class="col-md-4 mb-3"><div class="card text-center"><div class="card-header fw-bold text-white-50 text-uppercase small">Total de Artículos</div><div class="card-body py-4"><h2 class="card-title fw-bold display-4 text-success">{{ total_stock }}</h2></div></div></div>
+    <div class="col-md-4 mb-3"><div class="card text-center"><div class="card-header fw-bold text-white-50 text-uppercase small">Valor del Inventario</div><div class="card-body py-4"><h2 class="card-title fw-bold display-4 text-info">${{ "%.2f"|format(valor_inventario) }}</h2></div></div></div>
 </div>
 <div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center"><h5 class="mb-0"><i class="bi bi-table me-2"></i>Inventario de Productos</h5>
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-table me-2"></i>Inventario de Productos</h5>
         <form method="GET" action="{{ url_for('mostrar_inventario') }}" class="d-flex" style="width: 300px;">
-            <input type="text" name="q" class="form-control form-control-sm" placeholder="Buscar..." value="{{ query or '' }}"><button class="btn btn-sm btn-outline-secondary ms-2" type="submit"><i class="bi bi-search"></i></button>
+            <input type="text" name="q" class="form-control form-control-sm" placeholder="Buscar..." value="{{ query or '' }}">
+            <button class="btn btn-sm btn-outline-secondary ms-2" type="submit"><i class="bi bi-search"></i></button>
         </form>
     </div>
     <div class="card-body p-0">
-        <div class="table-responsive"><table class="table table-hover table-striped align-middle mb-0"><thead><tr><th>#</th><th>Nombre</th><th>Marca</th><th>Modelo</th><th>Precio</th><th class="text-center">Stock</th>{% if session.rol == 'admin' %}<th>Acciones</th>{% endif %}</tr></thead>
-        <tbody id="inventory-table-body">
-            {% for producto in inventario %}<tr class="{{ 'table-danger' if producto.cantidad < 5 else '' }}"><td>{{ (page - 1) * PER_PAGE + loop.index }}</td><td><strong>{{ producto.nombre }}</strong></td><td>{{ producto.marca }}</td><td>{{ producto.modelo }}</td><td>${{ "%.2f"|format(producto.precio) }}</td>
-            <td class="text-center"><div class="stock-control d-inline-flex"><button class="btn btn-outline-secondary stock-btn" data-id="{{ producto.id }}" data-action="decrementar">-</button><span id="stock-{{ producto.id }}" class="mx-2 fw-bold fs-5">{{ producto.cantidad }}</span><button class="btn btn-outline-secondary stock-btn" data-id="{{ producto.id }}" data-action="incrementar">+</button></div></td>
-            {% if session.rol == 'admin' %}<td><a href="{{ url_for('editar_producto', producto_id=producto.id) }}" class="btn btn-warning btn-sm" title="Editar"><i class="bi bi-pencil"></i></a><a href="{{ url_for('eliminar_producto', producto_id=producto.id) }}" class="btn btn-danger btn-sm ms-1" title="Eliminar" onclick="return confirm('¿Estás seguro?');"><i class="bi bi-trash"></i></a></td>{% endif %}
-            </tr>{% endfor %}
-        </tbody></table></div>
+        <div class="table-responsive"><table class="table table-hover table-striped align-middle mb-0">
+            <thead class="table-dark"><tr><th>#</th><th>Nombre</th><th>Marca</th><th>Modelo</th><th>Precio</th><th class="text-center">Stock</th>{% if session.rol == 'admin' %}<th>Acciones</th>{% endif %}</tr></thead>
+            <tbody id="inventory-table-body">
+                {% for producto in inventario %}<tr class="{{ 'table-danger' if producto.cantidad < 5 else '' }}"><td>{{ (page - 1) * PER_PAGE + loop.index }}</td><td><strong>{{ producto.nombre }}</strong></td><td>{{ producto.marca }}</td><td>{{ producto.modelo }}</td><td>${{ "%.2f"|format(producto.precio) }}</td>
+                <td class="text-center"><div class="stock-control d-inline-flex"><button class="btn btn-outline-secondary stock-btn" data-id="{{ producto.id }}" data-action="decrementar">-</button><span id="stock-{{ producto.id }}" class="mx-2 fw-bold fs-5">{{ producto.cantidad }}</span><button class="btn btn-outline-secondary stock-btn" data-id="{{ producto.id }}" data-action="incrementar">+</button></div></td>
+                {% if session.rol == 'admin' %}<td><a href="{{ url_for('editar_producto', producto_id=producto.id) }}" class="btn btn-warning btn-sm" title="Editar"><i class="bi bi-pencil"></i></a><a href="{{ url_for('eliminar_producto', producto_id=producto.id) }}" class="btn btn-danger btn-sm ms-1" title="Eliminar" onclick="return confirm('¿Estás seguro?');"><i class="bi bi-trash"></i></a></td>{% endif %}
+                </tr>{% endfor %}
+            </tbody></table></div>
     </div>
     {% if total_pages > 1 %}<div class="card-footer bg-transparent border-top-0"><nav><ul class="pagination justify-content-center mb-0"><li class="page-item {{ 'disabled' if page <= 1 else '' }}"><a class="page-link" href="{{ url_for('mostrar_inventario', page=page-1, q=query) }}">Anterior</a></li><li class="page-item active" aria-current="page"><span class="page-link">Página {{ page }} de {{ total_pages }}</span></li><li class="page-item {{ 'disabled' if page >= total_pages else '' }}"><a class="page-link" href="{{ url_for('mostrar_inventario', page=page+1, q=query) }}">Siguiente</a></li></ul></nav></div>{% endif %}
 </div>
