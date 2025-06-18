@@ -1,5 +1,4 @@
 import os
-import sqlite3
 import math
 import io
 import csv
@@ -15,9 +14,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', 'una_clave_secreta_por_defecto_para_desarrollo_local')
+app.secret_key = os.environ.get('SECRET_KEY', 'ricardo123')
 PER_PAGE = 5
 
+# --- FUNCIÓN DE CONEXIÓN A POSTGRESQL ---
 def get_db_connection():
     try:
         conn = psycopg2.connect(os.environ.get('DATABASE_URL'))
@@ -26,6 +26,7 @@ def get_db_connection():
         print(f"Error de conexión a la base de datos: {e}")
         return None
 
+# --- DECORADORES DE SEGURIDAD ---
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -44,35 +45,57 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+# --- RUTAS DE AUTENTICACIÓN ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    if 'user_id' in session: return redirect(url_for('mostrar_inventario'))
+    if 'user_id' in session:
+        return redirect(url_for('mostrar_inventario'))
+    
     if request.method == 'POST':
-        username, password = request.form['username'], request.form['password']
+        username = request.form['username']
+        password = request.form['password']
         conn = get_db_connection()
-        if conn:
+        
+        if not conn:
+            flash('Error de conexión con la base de datos. Inténtalo más tarde.', 'danger')
+            return render_template('login.html')
+
+        try:
             with conn.cursor(cursor_factory=DictCursor) as cur:
                 cur.execute('SELECT * FROM usuarios WHERE username = %s', (username,))
                 user = cur.fetchone()
+                
                 if user and check_password_hash(user['password'], password):
                     cur.execute('SELECT nombre_empresa FROM empresas WHERE id = %s', (user['empresa_id'],))
                     empresa = cur.fetchone()
+                    
                     session.clear()
                     session['user_id'] = user['id']
                     session['username'] = user['username']
                     session['rol'] = user['rol']
                     session['empresa_id'] = user['empresa_id']
                     session['nombre_empresa'] = empresa['nombre_empresa']
-                    conn.close()
+                    
+                    flash(f"¡Bienvenido de nuevo, {user['username']}!", 'success')
                     return redirect(url_for('mostrar_inventario'))
+
+            # Si el bloque 'if' de arriba no se ejecuta y no hay redirección, es que los datos son incorrectos.
             flash('Nombre de usuario o contraseña incorrectos.', 'danger')
-            conn.close()
+
+        except psycopg2.Error as e:
+            print(f"Error de base de datos en login: {e}")
+            flash('Ocurrió un error al intentar iniciar sesión.', 'danger')
+        finally:
+            if conn:
+                conn.close()
+
     return render_template('login.html')
 
 @app.route('/registro', methods=['GET', 'POST'])
 def registro():
     if 'user_id' in session: return redirect(url_for('mostrar_inventario'))
     if request.method == 'POST':
+        # Esta ruta es para crear una nueva EMPRESA con su primer ADMIN
         nombre_empresa = request.form['nombre_empresa']
         direccion = request.form.get('direccion', '')
         telefono = request.form.get('telefono', '')
@@ -87,6 +110,7 @@ def registro():
                 flash('Ya existe una empresa con ese nombre.', 'danger')
                 conn.close()
                 return redirect(url_for('registro'))
+            
             cur.execute('INSERT INTO empresas (nombre_empresa, direccion, telefono, rnc) VALUES (%s, %s, %s, %s) RETURNING id',
                         (nombre_empresa, direccion, telefono, rnc))
             empresa_id = cur.fetchone()['id']
@@ -105,6 +129,7 @@ def logout():
     flash('Has cerrado sesión exitosamente.', 'success')
     return redirect(url_for('login'))
 
+# --- RUTAS DE GESTIÓN DE CUENTA ---
 @app.route('/empresa/editar', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -152,6 +177,7 @@ def cambiar_password():
         return redirect(url_for('cambiar_password'))
     return render_template('cambiar_password.html')
 
+# --- RUTAS PRINCIPALES Y CRUD ---
 @app.route('/')
 @login_required
 def mostrar_inventario():
@@ -164,7 +190,7 @@ def mostrar_inventario():
         params = [empresa_id]
         if query:
             search_term = f"%{query}%"
-            where_clause = base_where + ' AND (nombre ILIKE %s OR marca ILIKE %s)' # ILIKE es para PostgreSQL
+            where_clause = base_where + ' AND (nombre ILIKE %s OR marca ILIKE %s)'
             params.extend([search_term, search_term])
         else: where_clause = base_where
         cur.execute('SELECT COUNT(id) AS total FROM productos' + where_clause, params)
@@ -237,6 +263,7 @@ def eliminar_producto(producto_id):
     flash('Producto eliminado.', 'danger')
     return redirect(url_for('mostrar_inventario'))
 
+# --- RUTAS DE REPORTES, ADMIN, POS y APIs ---
 @app.route('/reportes')
 @login_required
 def reportes():
@@ -429,7 +456,6 @@ def mostrar_factura(transaccion_id):
     conn.close()
     total_general = sum(item['precio_total'] for item in items_vendidos)
     cliente_nombre, cliente_telefono = items_vendidos[0]['cliente_nombre'], items_vendidos[0]['cliente_telefono']
-    # APLICAMOS LA CORRECCIÓN AQUÍ
     fecha_formateada = primera_venta['fecha_venta'].strftime('%Y-%m-%d')
     return render_template('factura.html',
                            transaccion_id=transaccion_id,
