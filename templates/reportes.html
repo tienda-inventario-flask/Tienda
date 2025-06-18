@@ -48,7 +48,7 @@
     <script>
         // --- GRÁFICO DE BARRAS (STOCK) ---
         const ctxStock = document.getElementById('graficoStock');
-        // Tomamos los datos que Flask nos pasó y los convertimos de JSON a un objeto de JavaScript
+        // Usamos el filtro 'safe' para imprimir el JSON de forma segura en el HTML
         const stockLabels = JSON.parse('{{ stock_labels | safe }}');
         const stockData = JSON.parse('{{ stock_data | safe }}');
 
@@ -65,40 +65,40 @@
                 }]
             },
             options: {
-                scales: {
-                    y: { beginAtZero: true }
-                },
-                indexAxis: 'y', // Hace que el gráfico sea horizontal, mejor para nombres largos
-                responsive: true
+                indexAxis: 'y', // Hace que el gráfico sea horizontal
+                scales: { x: { beginAtZero: true } },
+                responsive: true,
+                plugins: {
+                    legend: { display: false },
+                    title: { display: true, text: 'Top 5 Productos por Cantidad en Inventario' }
+                }
             }
         });
 
-        // --- GRÁFICO DE PASTEL (MARCAS) ---
+        // --- GRÁFICO DE DONA (MARCAS) ---
         const ctxMarcas = document.getElementById('graficoMarcas');
         const marcaLabels = JSON.parse('{{ marca_labels | safe }}');
         const marcaData = JSON.parse('{{ marca_data | safe }}');
 
         new Chart(ctxMarcas, {
-            type: 'doughnut', // 'pie' para pastel, 'doughnut' para dona
+            type: 'doughnut',
             data: {
                 labels: marcaLabels,
                 datasets: [{
                     label: '# de Productos',
                     data: marcaData,
-                    // Puedes añadir más colores aquí si tienes más marcas
-                    backgroundColor: [
-                        'rgba(255, 99, 132, 0.7)',
-                        'rgba(54, 162, 235, 0.7)',
-                        'rgba(255, 206, 86, 0.7)',
-                        'rgba(75, 192, 192, 0.7)',
-                        'rgba(153, 102, 255, 0.7)'
-                    ]
+                    backgroundColor: ['#0d6efd', '#6f42c1', '#d63384', '#fd7e14', '#198754', '#ffc107'],
+                    hoverOffset: 4
                 }]
             },
-            options: { responsive: true }
+            options: {
+                responsive: true,
+                plugins: {
+                    title: { display: true, text: 'Nº de Productos por Marca' }
+                }
+            }
         });
     </script>
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

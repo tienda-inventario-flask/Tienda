@@ -1,4 +1,5 @@
 import os
+import sqlite3
 import math
 import io
 import csv
@@ -17,7 +18,6 @@ app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'ricardo123')
 PER_PAGE = 5
 
-# --- FUNCIÓN DE CONEXIÓN A POSTGRESQL ---
 def get_db_connection():
     try:
         conn = psycopg2.connect(os.environ.get('DATABASE_URL'))
@@ -26,7 +26,6 @@ def get_db_connection():
         print(f"Error de conexión a la base de datos: {e}")
         return None
 
-# --- DECORADORES DE SEGURIDAD ---
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -45,57 +44,44 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-# --- RUTAS DE AUTENTICACIÓN ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if 'user_id' in session:
         return redirect(url_for('mostrar_inventario'))
-    
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
         conn = get_db_connection()
-        
         if not conn:
             flash('Error de conexión con la base de datos. Inténtalo más tarde.', 'danger')
             return render_template('login.html')
-
         try:
             with conn.cursor(cursor_factory=DictCursor) as cur:
                 cur.execute('SELECT * FROM usuarios WHERE username = %s', (username,))
                 user = cur.fetchone()
-                
                 if user and check_password_hash(user['password'], password):
                     cur.execute('SELECT nombre_empresa FROM empresas WHERE id = %s', (user['empresa_id'],))
                     empresa = cur.fetchone()
-                    
                     session.clear()
                     session['user_id'] = user['id']
                     session['username'] = user['username']
                     session['rol'] = user['rol']
                     session['empresa_id'] = user['empresa_id']
                     session['nombre_empresa'] = empresa['nombre_empresa']
-                    
-                    flash(f"¡Bienvenido de nuevo, {user['username']}!", 'success')
                     return redirect(url_for('mostrar_inventario'))
-
-            # Si el bloque 'if' de arriba no se ejecuta y no hay redirección, es que los datos son incorrectos.
             flash('Nombre de usuario o contraseña incorrectos.', 'danger')
-
         except psycopg2.Error as e:
-            print(f"Error de base de datos en login: {e}")
-            flash('Ocurrió un error al intentar iniciar sesión.', 'danger')
+            print(f"Error de DB en login: {e}")
+            flash('Ocurrió un error en el servidor. Inténtelo de nuevo.', 'danger')
         finally:
             if conn:
                 conn.close()
-
     return render_template('login.html')
 
 @app.route('/registro', methods=['GET', 'POST'])
 def registro():
     if 'user_id' in session: return redirect(url_for('mostrar_inventario'))
     if request.method == 'POST':
-        # Esta ruta es para crear una nueva EMPRESA con su primer ADMIN
         nombre_empresa = request.form['nombre_empresa']
         direccion = request.form.get('direccion', '')
         telefono = request.form.get('telefono', '')
@@ -110,7 +96,6 @@ def registro():
                 flash('Ya existe una empresa con ese nombre.', 'danger')
                 conn.close()
                 return redirect(url_for('registro'))
-            
             cur.execute('INSERT INTO empresas (nombre_empresa, direccion, telefono, rnc) VALUES (%s, %s, %s, %s) RETURNING id',
                         (nombre_empresa, direccion, telefono, rnc))
             empresa_id = cur.fetchone()['id']
@@ -129,7 +114,6 @@ def logout():
     flash('Has cerrado sesión exitosamente.', 'success')
     return redirect(url_for('login'))
 
-# --- RUTAS DE GESTIÓN DE CUENTA ---
 @app.route('/empresa/editar', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -177,7 +161,6 @@ def cambiar_password():
         return redirect(url_for('cambiar_password'))
     return render_template('cambiar_password.html')
 
-# --- RUTAS PRINCIPALES Y CRUD ---
 @app.route('/')
 @login_required
 def mostrar_inventario():
@@ -206,7 +189,6 @@ def mostrar_inventario():
         productos = cur.fetchall()
     conn.close()
     return render_template('index.html', inventario=productos, query=query, page=page, total_pages=total_pages, total_productos=total_productos, total_stock=total_stock, valor_inventario=valor_inventario, PER_PAGE=PER_PAGE)
-
 def get_producto(producto_id):
     conn = get_db_connection()
     with conn.cursor(cursor_factory=DictCursor) as cur:
@@ -214,7 +196,6 @@ def get_producto(producto_id):
         producto = cur.fetchone()
     conn.close()
     return producto
-
 @app.route('/agregar', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -230,7 +211,6 @@ def agregar_producto():
         flash('¡Producto añadido con éxito!', 'success')
         return redirect(url_for('mostrar_inventario'))
     return render_template('agregar_producto.html')
-
 @app.route('/editar/<int:producto_id>', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -250,7 +230,6 @@ def editar_producto(producto_id):
         flash('¡Producto actualizado correctamente!', 'success')
         return redirect(url_for('mostrar_inventario'))
     return render_template('editar_producto.html', producto=producto)
-
 @app.route('/eliminar/<int:producto_id>')
 @login_required
 @admin_required
@@ -262,43 +241,6 @@ def eliminar_producto(producto_id):
     conn.close()
     flash('Producto eliminado.', 'danger')
     return redirect(url_for('mostrar_inventario'))
-
-# --- RUTAS DE REPORTES, ADMIN, POS y APIs ---
-@app.route('/reportes')
-@login_required
-def reportes():
-    conn = get_db_connection()
-    with conn.cursor(cursor_factory=DictCursor) as cur:
-        empresa_id = session['empresa_id']
-        cur.execute('SELECT nombre, cantidad FROM productos WHERE empresa_id = %s ORDER BY cantidad DESC LIMIT 5', (empresa_id,))
-        top_stock_productos = cur.fetchall()
-        cur.execute('SELECT marca, COUNT(id) as total FROM productos WHERE empresa_id = %s GROUP BY marca', (empresa_id,))
-        productos_por_marca = cur.fetchall()
-    conn.close()
-    stock_labels = [row['nombre'] for row in top_stock_productos]
-    stock_data = [row['cantidad'] for row in top_stock_productos]
-    marca_labels = [row['marca'] for row in productos_por_marca]
-    marca_data = [row['total'] for row in productos_por_marca]
-    return render_template('reportes.html', stock_labels=json.dumps(stock_labels), stock_data=json.dumps(stock_data), marca_labels=json.dumps(marca_labels), marca_data=json.dumps(marca_data))
-
-@app.route('/exportar_csv')
-@login_required
-def exportar_csv():
-    conn = get_db_connection()
-    with conn.cursor() as cur:
-        cur.execute('SELECT id, nombre, marca, modelo, precio, cantidad FROM productos WHERE empresa_id = %s ORDER BY id', (session['empresa_id'],))
-        productos = cur.fetchall()
-    conn.close()
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(['ID', 'Nombre', 'Marca', 'Modelo', 'Precio', 'Cantidad en Stock'])
-    for producto in productos: writer.writerow(producto)
-    output.seek(0)
-    response = make_response(output.getvalue())
-    response.headers['Content-Disposition'] = 'attachment; filename=inventario.csv'
-    response.headers['Content-type'] = 'text/csv'
-    return response
-
 @app.route('/admin/usuarios')
 @login_required
 @admin_required
@@ -309,7 +251,6 @@ def gestionar_usuarios():
         usuarios = cur.fetchall()
     conn.close()
     return render_template('admin_usuarios.html', usuarios=usuarios)
-
 @app.route('/admin/agregar_usuario', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -331,7 +272,6 @@ def agregar_usuario():
                 return redirect(url_for('gestionar_usuarios'))
         conn.close()
     return render_template('agregar_usuario.html')
-
 @app.route('/admin/cambiar_rol/<int:usuario_id>', methods=['POST'])
 @login_required
 @admin_required
@@ -350,7 +290,6 @@ def cambiar_rol(usuario_id):
     conn.close()
     flash('Rol de usuario actualizado con éxito.', 'success')
     return redirect(url_for('gestionar_usuarios'))
-
 @app.route('/admin/eliminar_usuario/<int:usuario_id>')
 @login_required
 @admin_required
@@ -366,6 +305,50 @@ def eliminar_usuario(usuario_id):
     flash('Usuario eliminado con éxito.', 'success')
     return redirect(url_for('gestionar_usuarios'))
 
+# --- RUTA DE REPORTES MODIFICADA ---
+@app.route('/reportes')
+@login_required
+def reportes():
+    conn = get_db_connection()
+    with conn.cursor(cursor_factory=DictCursor) as cur:
+        empresa_id = session['empresa_id']
+        # Datos para el Gráfico de Barras (Top 5 Stock)
+        cur.execute('SELECT nombre, cantidad FROM productos WHERE empresa_id = %s ORDER BY cantidad DESC LIMIT 5', (empresa_id,))
+        top_stock_productos = cur.fetchall()
+        # Datos para el Gráfico de Pastel (Distribución por Marca)
+        cur.execute('SELECT marca, COUNT(id) as total FROM productos WHERE empresa_id = %s GROUP BY marca', (empresa_id,))
+        productos_por_marca = cur.fetchall()
+    conn.close()
+    # Preparamos los datos para JavaScript
+    stock_labels = [row['nombre'] for row in top_stock_productos]
+    stock_data = [row['cantidad'] for row in top_stock_productos]
+    marca_labels = [row['marca'] for row in productos_por_marca]
+    marca_data = [row['total'] for row in productos_por_marca]
+    return render_template('reportes.html',
+                           stock_labels=json.dumps(stock_labels),
+                           stock_data=json.dumps(stock_data),
+                           marca_labels=json.dumps(marca_labels),
+                           marca_data=json.dumps(marca_data))
+
+@app.route('/exportar_csv')
+@login_required
+def exportar_csv():
+    conn = get_db_connection()
+    with conn.cursor() as cur:
+        cur.execute('SELECT id, nombre, marca, modelo, precio, cantidad FROM productos WHERE empresa_id = %s ORDER BY id', (session['empresa_id'],))
+        productos = cur.fetchall()
+    conn.close()
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['ID', 'Nombre', 'Marca', 'Modelo', 'Precio', 'Cantidad en Stock'])
+    for producto in productos: writer.writerow(producto)
+    output.seek(0)
+    response = make_response(output.getvalue())
+    response.headers['Content-Disposition'] = 'attachment; filename=inventario.csv'
+    response.headers['Content-type'] = 'text/csv'
+    return response
+
+# --- RUTAS DE POS, API y FACTURACIÓN ---
 @app.route('/pos')
 @login_required
 def pos():
@@ -451,7 +434,7 @@ def mostrar_factura(transaccion_id):
             return redirect(url_for('pos'))
         cur.execute('SELECT * FROM empresas WHERE id = %s', (session['empresa_id'],))
         empresa = cur.fetchone()
-        cur.execute('SELECT fecha_venta FROM ventas WHERE transaccion_id = %s', (transaccion_id,))
+        cur.execute('SELECT fecha_venta FROM ventas WHERE transaccion_id = %s LIMIT 1', (transaccion_id,))
         primera_venta = cur.fetchone()
     conn.close()
     total_general = sum(item['precio_total'] for item in items_vendidos)
