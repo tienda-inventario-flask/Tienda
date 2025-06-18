@@ -1,105 +1,102 @@
-/* static/css/custom.css */
+/* static/css/custom.css (Tema Corporativo Limpio) */
 
-/* 1. Importar una tipografía moderna de Google Fonts */
+/* 1. Importar la tipografía (usaremos la misma, 'Inter', que es muy limpia) */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
 
-/* 2. Definir nuestra paleta de colores en variables para fácil mantenimiento */
+/* 2. Nueva paleta de colores corporativa */
 :root {
-    --bg-dark: #1a1c23;
-    --surface-dark: #242731;
-    --primary-accent: #7f5af0;
-    --primary-accent-hover: #6b4eda;
-    --secondary-accent: #2cb67d;
-    --text-light: #fffffe;
-    --text-muted: #94a1b2;
-    --border-color: #40434E;
+    --bg-light-gray: #f8f9fa; /* Fondo general muy claro */
+    --surface-white: #ffffff;  /* Superficies como tarjetas */
+    --primary-blue: #0d6efd;   /* El azul primario de Bootstrap, es excelente */
+    --primary-blue-hover: #0b5ed7;
+    --text-dark: #212529;      /* Texto principal oscuro */
+    --text-muted: #6c757d;     /* Texto secundario gris */
+    --border-color: #dee2e6;   /* Bordes y líneas sutiles */
 }
 
-/* 3. Aplicar estilos base */
+/* 3. Aplicar nuevos estilos base */
 body {
     font-family: 'Inter', sans-serif;
-    background-color: var(--bg-dark);
-    color: var(--text-light);
+    background-color: var(--bg-light-gray);
+    color: var(--text-dark); /* Color de texto por defecto */
 }
 
-/* 4. Personalizar componentes de Bootstrap */
+/* 4. Personalizar componentes para el tema claro */
 .card {
-    background-color: var(--surface-dark);
+    background-color: var(--surface-white);
     border: 1px solid var(--border-color);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
-    transition: transform 0.2s ease-in-out;
+    /* Una sombra mucho más sutil y profesional */
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    transition: box-shadow 0.2s ease-in-out;
 }
 
 .card:hover {
-    transform: translateY(-5px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    transform: translateY(0); /* Quitamos el efecto de "levantarse" */
 }
 
 .card-header {
-    background-color: rgba(0,0,0,0.2);
+    background-color: transparent; /* Un encabezado más limpio */
     border-bottom: 1px solid var(--border-color);
+    font-weight: 500;
 }
 
 .table {
-    --bs-table-bg: var(--surface-dark);
-    --bs-table-color: var(--text-light);
-    --bs-table-striped-bg: #2a2d39;
-    --bs-table-striped-color: var(--text-light);
-    --bs-table-hover-bg: #323542;
-    --bs-table-hover-color: var(--text-light);
-    --bs-table-border-color: var(--border-color);
+    /* Reseteamos la tabla a los valores por defecto de Bootstrap para tema claro */
+    --bs-table-bg: transparent;
+    --bs-table-color: inherit;
+    --bs-table-striped-bg: rgba(0, 0, 0, 0.03);
+    --bs-table-hover-bg: rgba(0, 0, 0, 0.06);
 }
 
 .table-dark {
-     --bs-table-bg: var(--primary-accent);
-     --bs-table-border-color: var(--primary-accent-hover);
+     --bs-table-bg: #495057; /* Un gris oscuro para la cabecera */
+     --bs-table-color: #fff;
+     --bs-table-border-color: #6c757d;
 }
 
 .btn-primary {
-    background-color: var(--primary-accent);
-    border-color: var(--primary-accent);
+    background-color: var(--primary-blue);
+    border-color: var(--primary-blue);
 }
 .btn-primary:hover {
-    background-color: var(--primary-accent-hover);
-    border-color: var(--primary-accent-hover);
+    background-color: var(--primary-blue-hover);
+    border-color: var(--primary-blue-hover);
 }
 
-.btn-success {
-    background-color: var(--secondary-accent);
-    border-color: var(--secondary-accent);
-}
-
-.form-control {
-    background-color: var(--bg-dark);
+.form-control, .form-select {
+    background-color: var(--surface-white);
     border-color: var(--border-color);
-    color: var(--text-light);
+    color: var(--text-dark);
 }
-.form-control:focus {
-    background-color: var(--bg-dark);
-    border-color: var(--primary-accent);
-    box-shadow: 0 0 0 0.25rem rgba(127, 90, 240, 0.25);
-    color: var(--text-light);
-}
-.form-select {
-    background-color: var(--bg-dark);
-    border-color: var(--border-color);
-    color: var(--text-light);
-}
-
-.alert {
-    border-radius: 0.5rem;
+.form-control:focus, .form-select:focus {
+    background-color: var(--surface-white);
+    border-color: var(--primary-blue);
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    color: var(--text-dark);
 }
 
 .dropdown-menu {
-    background-color: var(--surface-dark);
+    background-color: var(--surface-white);
     border-color: var(--border-color);
 }
 .dropdown-item {
-    color: var(--text-light);
+    color: var(--text-dark);
 }
 .dropdown-item:hover {
-    background-color: var(--primary-accent);
-    color: var(--text-light);
+    background-color: var(--primary-blue);
+    color: #fff;
 }
 .dropdown-divider {
     border-top: 1px solid var(--border-color);
+}
+
+/* Estilos específicos del logo en la barra de navegación de base.html */
+.navbar-brand .logo-text {
+    font-weight: 700;
+    font-size: 1.5rem;
+    color: var(--text-dark);
+}
+.navbar-brand .logo-accent {
+    color: var(--primary-blue);
 }
