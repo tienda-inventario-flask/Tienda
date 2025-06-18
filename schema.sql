@@ -1,6 +1,6 @@
--- schema.sql (Versión PostgreSQL)
-DROP TABLE IF EXISTS ventas;
+DROP TABLE IF EXISTS ventas; -- Se borran en orden inverso a la creación por las dependencias
 DROP TABLE IF EXISTS productos;
+DROP TABLE IF EXISTS historial_actividad; -- Se añade la nueva tabla aquí
 DROP TABLE IF EXISTS usuarios;
 DROP TABLE IF EXISTS empresas;
 
@@ -12,6 +12,7 @@ CREATE TABLE empresas (
     rnc TEXT,
     creado TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
 CREATE TABLE usuarios (
     id SERIAL PRIMARY KEY,
     empresa_id INTEGER NOT NULL REFERENCES empresas(id),
@@ -21,6 +22,7 @@ CREATE TABLE usuarios (
     creado TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (empresa_id, username)
 );
+
 CREATE TABLE productos (
     id SERIAL PRIMARY KEY,
     empresa_id INTEGER NOT NULL REFERENCES empresas(id),
@@ -29,8 +31,10 @@ CREATE TABLE productos (
     modelo TEXT NOT NULL,
     precio NUMERIC(10, 2) NOT NULL,
     cantidad INTEGER NOT NULL,
-    creado TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    creado TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    FOREIGN KEY (empresa_id) REFERENCES empresas(id)
 );
+
 CREATE TABLE ventas (
     id SERIAL PRIMARY KEY,
     transaccion_id UUID NOT NULL,
@@ -42,4 +46,15 @@ CREATE TABLE ventas (
     cliente_nombre TEXT,
     cliente_telefono TEXT,
     fecha_venta TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- --- NUEVA TABLA PARA EL HISTORIAL DE ACTIVIDAD ---
+CREATE TABLE historial_actividad (
+    id SERIAL PRIMARY KEY,
+    empresa_id INTEGER NOT NULL REFERENCES empresas(id),
+    usuario_id INTEGER NOT NULL REFERENCES usuarios(id),
+    usuario_username TEXT NOT NULL,
+    accion TEXT NOT NULL,
+    descripcion TEXT,
+    fecha TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
