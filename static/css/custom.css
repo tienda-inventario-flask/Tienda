@@ -1,26 +1,121 @@
+/* static/css/custom.css (Tema Negro Sofisticado) */
+
+/* 1. Importar la tipografía (Inter es perfecta para este estilo) */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
 
+/* 2. Nueva paleta de colores profesional y oscura */
 :root {
-    --bs-body-bg: #f8f9fa;
-    --bs-body-color: #212529;
     --bs-body-font-family: 'Inter', sans-serif;
-    --primary-blue: #0d6efd;
-    --border-color: #dee2e6;
-    --surface-white: #ffffff;
+    --bs-body-bg: #121212; /* Fondo principal casi negro */
+    --bs-body-color: #e0e0e0; /* Color de texto principal (blanco suave) */
+    
+    --surface-color: #1e1e1e; /* Color para superficies como tarjetas */
+    --border-color: #333;      /* Bordes sutiles */
+    
+    --primary-blue: #0d6efd; /* Azul corporativo para acentos */
+    --primary-blue-hover: #0a58ca;
+    --text-muted: #888;
 }
 
-body { background-color: var(--bs-body-bg); }
+/* 3. Estilos base */
+body {
+    background-color: var(--bs-body-bg);
+    color: var(--bs-body-color);
+}
 
+a {
+    color: var(--primary-blue);
+}
+a:hover {
+    color: var(--primary-blue-hover);
+}
+
+/* 4. Personalizar componentes de Bootstrap */
 .card {
-    background-color: var(--surface-white);
+    background-color: var(--surface-color);
     border: 1px solid var(--border-color);
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
 }
+
 .card-header {
-    background-color: transparent;
+    background-color: rgba(255, 255, 255, 0.03);
     border-bottom: 1px solid var(--border-color);
     font-weight: 500;
 }
-.table { --bs-table-striped-bg: rgba(0, 0, 0, 0.03); }
 
-.btn-primary { --bs-btn-bg: var(--primary-blue); --bs-btn-border-color: var(--primary-blue); --bs-btn-hover-bg: #0b5ed7; --bs-btn-hover-border-color: #0a58ca; }
+.table {
+    --bs-table-bg: var(--surface-color);
+    --bs-table-color: var(--bs-body-color);
+    --bs-table-striped-bg: #2c2c2c;
+    --bs-table-hover-bg: #333333;
+    --bs-table-border-color: var(--border-color);
+}
+
+.table-dark {
+     --bs-table-bg: #000;
+     --bs-table-color: #fff;
+     --bs-table-border-color: #444;
+}
+
+.btn-primary {
+    --bs-btn-bg: var(--primary-blue);
+    --bs-btn-border-color: var(--primary-blue);
+    --bs-btn-hover-bg: var(--primary-blue-hover);
+    --bs-btn-hover-border-color: var(--primary-blue-hover);
+}
+
+.form-control, .form-select {
+    background-color: #2a2d39;
+    border-color: #40434E;
+    color: var(--bs-body-color);
+}
+.form-control::placeholder {
+    color: var(--text-muted);
+}
+.form-control:focus, .form-select:focus {
+    background-color: #2a2d39;
+    border-color: var(--primary-blue);
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    color: var(--bs-body-color);
+}
+
+.dropdown-menu {
+    background-color: #2c2f38;
+    border-color: #40434E;
+}
+.dropdown-item {
+    color: var(--bs-body-color);
+}
+.dropdown-item:hover {
+    background-color: var(--primary-blue);
+    color: #fff;
+}
+.dropdown-divider {
+    border-top: 1px solid var(--border-color);
+}
+
+/* Estilo para que el logo se vea bien en tema oscuro */
+.navbar-brand .logo-text, .text-body {
+    color: var(--bs-body-color) !important;
+}
+
+/* Ajuste de color para la paginación */
+.page-link {
+    background-color: var(--surface-color);
+    border-color: var(--border-color);
+}
+.page-item.active .page-link {
+    background-color: var(--primary-blue);
+    border-color: var(--primary-blue);
+}
+.page-item.disabled .page-link {
+    background-color: transparent;
+    border-color: var(--border-color);
+}
+
+/* Estilo para bajo stock */
+.table .table-danger, .table .table-danger > th, .table .table-danger > td {
+    --bs-table-bg: #58151c;
+    --bs-table-color: #fff;
+    --bs-table-border-color: #a62f3a;
+}
