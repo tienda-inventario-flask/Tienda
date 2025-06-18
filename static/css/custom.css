@@ -1,0 +1,23 @@
+/* static/css/custom.css */
+
+/* Cambiamos el color de fondo general de la aplicación */
+body {
+    background-color: #f0f2f5; /* Un gris un poco más suave */
+}
+
+/* Damos una sombra más pronunciada a las tarjetas para que resalten */
+.card {
+    border: none;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+}
+
+/* Personalizamos el color primario de los botones */
+.btn-primary {
+    background-color: #5a4fcf;
+    border-color: #5a4fcf;
+}
+
+.btn-primary:hover {
+    background-color: #493fb0;
+    border-color: #493fb0;
+}
