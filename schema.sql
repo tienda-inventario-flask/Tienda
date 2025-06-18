@@ -1,4 +1,4 @@
-DROP TABLE IF EXISTS ventas; -- Se borran en orden inverso a la creación por las dependencias
+DROP TABLE IF EXISTS ventas;
 DROP TABLE IF EXISTS productos;
 DROP TABLE IF EXISTS historial_actividad; -- Se añade la nueva tabla aquí
 DROP TABLE IF EXISTS usuarios;
@@ -48,7 +48,6 @@ CREATE TABLE ventas (
     fecha_venta TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- --- NUEVA TABLA PARA EL HISTORIAL DE ACTIVIDAD ---
 CREATE TABLE historial_actividad (
     id SERIAL PRIMARY KEY,
     empresa_id INTEGER NOT NULL REFERENCES empresas(id),
