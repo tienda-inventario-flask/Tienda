@@ -1,108 +1,85 @@
-/* static/css/custom.css (Diseño con Sidebar) */
-@import url(&#39;https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&amp;display=swap&#39;);
+/* static/css/custom.css (Tema Minimalista Profesional) */
 
+/* 1. Importar la tipografía */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+
+/* 2. Nueva paleta de colores limpia y corporativa */
 :root {
-\--bs-body-font-family: 'Inter', sans-serif;
-\--sidebar-width: 280px;
-\--bg-dark: \#121212;
-\--surface-dark: \#1e1e1e;
-\--primary-accent: \#0d6efd; /\* Azul corporativo \*/
-\--border-color: \#343a40;
-\--text-light: \#f8f9fa;
-\--text-muted: \#6c757d;
+    --bs-body-font-family: 'Inter', sans-serif;
+    --bs-body-bg: #f8f9fa; /* Fondo general gris muy claro */
+    --bs-body-color: #212529; /* Texto principal oscuro */
+    
+    --surface-white: #ffffff;
+    --primary-accent: #17a2b8; /* Un verde azulado (teal) sofisticado */
+    --primary-accent-hover: #138496;
+    --border-color: #dee2e6;
+    --text-muted: #6c757d;
 }
 
+/* 3. Estilos base */
 body {
-background-color: var(--bg-dark);
-color: var(--text-light);
-}
-
-.app-wrapper {
-display: flex;
-}
-
-.sidebar {
-width: var(--sidebar-width);
-height: 100vh;
-position: fixed;
-top: 0;
-left: 0;
-background-color: var(--surface-dark);
-border-right: 1px solid var(--border-color);
-}
-
-.main-content {
-margin-left: var(--sidebar-width);
-width: calc(100% - var(--sidebar-width));
-height: 100vh;
-overflow-y: auto;
-}
-
-.nav-pills .nav-link {
-color: var(--text-muted);
-border-radius: 0.375rem;
-margin-bottom: 0.25rem;
-font-weight: 500;
-}
-
-.nav-pills .nav-link:hover {
-background-color: rgba(255,255,255,0.05);
-color: var(--text-light);
-}
-
-.nav-pills .nav-link.active {
-background-color: var(--primary-accent);
-color: \#fff;
-}
-
-.nav-item-header {
-padding: .5rem 1rem;
-font-size: .75rem;
-font-weight: 700;
+    background-color: var(--bs-body-bg);
 }
 
 .card {
-background-color: var(--surface-dark);
-border: 1px solid var(--border-color);
+    background-color: var(--surface-white);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem; /* Esquinas más redondeadas */
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    transition: box-shadow 0.2s ease-in-out;
+}
+.card:hover {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
 }
 
 .card-header {
-background-color: rgba(255,255,255,0.03);
-border-bottom: 1px solid var(--border-color);
+    background-color: transparent;
+    border-bottom: 1px solid var(--border-color);
+    font-weight: 500;
 }
 
+/* 4. Personalizar componentes de Bootstrap */
 .table {
-\--bs-table-bg: var(--surface-dark);
-\--bs-table-color: var(--text-light);
-\--bs-table-striped-bg: \#2c2c2c;
-\--bs-table-hover-bg: \#333333;
-\--bs-table-border-color: var(--border-color);
-}
-.table-dark {
-\--bs-table-bg: \#000;
-\--bs-table-color: \#fff;
-\--bs-table-border-color: \#444;
+    --bs-table-striped-bg: #f2f2f2;
 }
 
-.form-control, .form-select {
-background-color: \#2a2d39;
-border-color: \#40434E;
-color: var(--text-light);
-}
-.form-control::placeholder { color: var(--text-muted); }
-.form-control:focus, .form-select:focus {
-background-color: \#2a2d39;
-border-color: var(--primary-accent);
-box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-color: var(--text-light);
+.btn-primary {
+    --bs-btn-color: #fff;
+    --bs-btn-bg: var(--primary-accent);
+    --bs-btn-border-color: var(--primary-accent);
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: var(--primary-accent-hover);
+    --bs-btn-hover-border-color: #117a8b;
 }
 
-.dropdown-menu {
-background-color: \#2c2f38;
-border-color: \#40434E;
+.text-primary {
+    color: var(--primary-accent) !important;
 }
-.dropdown-item:hover {
-background-color: var(--primary-accent);
-color: \#fff;
+
+a {
+    color: var(--primary-accent);
 }
-.dropdown-divider { border-top: 1px solid var(--border-color); }
+a:hover {
+    color: var(--primary-accent-hover);
+}
+
+.dropdown-item:active {
+    background-color: var(--primary-accent);
+}
+
+.pagination {
+    --bs-pagination-active-bg: var(--primary-accent);
+    --bs-pagination-active-border-color: var(--primary-accent);
+    --bs-pagination-color: var(--primary-accent);
+    --bs-pagination-hover-color: var(--primary-accent-hover);
+}
+
+/* Estilo del logo en la barra de navegación */
+.navbar-brand .logo-text {
+    font-weight: 700;
+    font-size: 1.5rem;
+    color: var(--bs-body-color);
+}
+.navbar-brand .logo-accent {
+    color: var(--primary-accent);
+}
