@@ -16,7 +16,7 @@ load_dotenv()
 
 app = Flask(__name__)
 # La clave secreta ahora se lee de una variable de entorno para mayor seguridad en producción
-app.secret_key = os.environ.get('SECRET_KEY', 'ricardo123')
+app.secret_key = os.environ.get('SECRET_KEY', 'una_clave_secreta_por_defecto_para_desarrollo_local')
 PER_PAGE = 10 # Items por página para paginación
 
 # --- FUNCIÓN DE CONEXIÓN A POSTGRESQL ---
@@ -97,9 +97,12 @@ def login():
 def registro():
     if 'user_id' in session: return redirect(url_for('mostrar_inventario'))
     if request.method == 'POST':
-        nombre_empresa, direccion = request.form['nombre_empresa'], request.form.get('direccion', '')
-        telefono, rnc = request.form.get('telefono', ''), request.form.get('rnc', '')
-        username, password = request.form['username'], request.form['password']
+        nombre_empresa = request.form['nombre_empresa']
+        direccion = request.form.get('direccion', '')
+        telefono = request.form.get('telefono', '')
+        rnc = request.form.get('rnc', '')
+        username = request.form['username']
+        password = request.form['password']
         conn = get_db_connection()
         with conn.cursor(cursor_factory=DictCursor) as cur:
             cur.execute('SELECT id FROM empresas WHERE nombre_empresa = %s', (nombre_empresa,))
@@ -408,21 +411,26 @@ def pos(): return render_template('pos.html')
 @login_required
 def buscar_productos_api():
     query = request.args.get('q', '').strip()
-    if not query: return jsonify([])
+    if not query:
+        return jsonify([])
     conn = get_db_connection()
-    if not conn: return jsonify({'error': 'Fallo en la conexión a la base de datos'}), 500
+    if not conn:
+        return jsonify({'error': 'Fallo en la conexión a la base de datos'}), 500
     try:
         with conn.cursor(cursor_factory=DictCursor) as cur:
             search_term = f"%{query}%"
-            cur.execute('SELECT id, nombre, precio, cantidad FROM productos WHERE empresa_id = %s AND (nombre ILIKE %s OR marca ILIKE %s) LIMIT 10',
-                        (session['empresa_id'], search_term, search_term))
+            cur.execute(
+                'SELECT id, nombre, precio, cantidad FROM productos WHERE empresa_id = %s AND (nombre ILIKE %s OR marca ILIKE %s) LIMIT 10',
+                (session['empresa_id'], search_term, search_term)
+            )
             productos = cur.fetchall()
         return jsonify([dict(row) for row in productos])
     except psycopg2.Error as e:
         print(f"Error en API de búsqueda: {e}")
         return jsonify({'error': 'Ocurrió un error en la base de datos'}), 500
     finally:
-        if conn: conn.close()
+        if conn:
+            conn.close()
 
 @app.route('/api/actualizar_stock/<int:producto_id>', methods=['POST'])
 @login_required
