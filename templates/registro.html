@@ -14,8 +14,7 @@
 <div class="card">
     <div class="card-body p-4 p-md-5">
         <h2 class="card-title text-center mb-4">Registrar mi Empresa</h2>
-        {% with messages=get_flashed_messages(with_categories=True) %}
-          {% if messages %}{% for category, message in messages %}<div class="alert alert-{{ category }}">{{ message }}</div>{% endfor %}{% endif %}
+        {% with messages=get_flashed_messages(with_categories=True) %}{% if messages %}{% for category, message in messages %}<div class="alert alert-{{ category }}">{{ message }}</div>{% endfor %}{% endif %}
         {% endwith %}
         <form method="POST">
             <div class="mb-3">

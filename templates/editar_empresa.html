@@ -5,30 +5,18 @@
     <div class="col-lg-8">
         <div class="card">
             <div class="card-header"><h3 class="mb-0">Perfil de la Empresa</h3></div>
-            <div class="card-body">
+            <div class="card-body p-4">
                 {% with messages = get_flashed_messages(with_categories=true) %}
                   {% if messages %}{% for category, message in messages %}<div class="alert alert-{{ category }}">{{ message }}</div>{% endfor %}{% endif %}
                 {% endwith %}
                 <form method="POST">
-                    <div class="mb-3">
-                        <label for="nombre_empresa" class="form-label">Nombre de la Empresa</label>
-                        <input type="text" class="form-control" id="nombre_empresa" name="nombre_empresa" value="{{ empresa.nombre_empresa }}" required>
-                    </div>
-                     <div class="mb-3">
-                        <label for="direccion" class="form-label">Dirección</label>
-                        <input type="text" class="form-control" id="direccion" name="direccion" value="{{ empresa.direccion or '' }}">
-                    </div>
+                    <div class="mb-3"><label for="nombre_empresa" class="form-label">Nombre de la Empresa</label><input type="text" class="form-control" id="nombre_empresa" name="nombre_empresa" value="{{ empresa.nombre_empresa }}" required></div>
+                     <div class="mb-3"><label for="direccion" class="form-label">Dirección</label><input type="text" class="form-control" id="direccion" name="direccion" value="{{ empresa.direccion or '' }}"></div>
                     <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="telefono" class="form-label">Teléfono</label>
-                            <input type="text" class="form-control" id="telefono" name="telefono" value="{{ empresa.telefono or '' }}">
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="rnc" class="form-label">RNC / ID Fiscal</label>
-                            <input type="text" class="form-control" id="rnc" name="rnc" value="{{ empresa.rnc or '' }}">
-                        </div>
+                        <div class="col-md-6 mb-3"><label for="telefono" class="form-label">Teléfono</label><input type="text" class="form-control" id="telefono" name="telefono" value="{{ empresa.telefono or '' }}"></div>
+                        <div class="col-md-6 mb-3"><label for="rnc" class="form-label">RNC / ID Fiscal</label><input type="text" class="form-control" id="rnc" name="rnc" value="{{ empresa.rnc or '' }}"></div>
                     </div>
-                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-3">
                         <a href="{{ url_for('mostrar_inventario') }}" class="btn btn-secondary">Cancelar</a>
                         <button type="submit" class="btn btn-primary">Guardar Cambios</button>
                     </div>

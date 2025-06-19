@@ -13,7 +13,7 @@
 <div class="card mt-2">
     <div class="card-header"><h2><i class="bi bi-file-earmark-spreadsheet me-2"></i>Exportar Datos</h2></div>
     <div class="card-body">
-        <p class="text-muted">Genera un archivo CSV con todos los productos del inventario para su análisis.</p>
+        <p class="text-white-50">Genera un archivo CSV con todos los productos del inventario para su análisis.</p>
         <a href="{{ url_for('exportar_csv') }}" class="btn btn-success">Exportar Inventario a CSV</a>
     </div>
 </div>
@@ -21,7 +21,7 @@
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    Chart.defaults.color = '#869ab8';
+    Chart.defaults.color = '#adb5bd';
     const ctxStock=document.getElementById("graficoStock"),stockLabels=JSON.parse('{{ stock_labels|safe }}'),stockData=JSON.parse('{{ stock_data|safe }}');new Chart(ctxStock,{type:"bar",data:{labels:stockLabels,datasets:[{label:"Cantidad en Stock",data:stockData,backgroundColor:"rgba(13, 110, 253, 0.7)",borderColor:"rgba(13, 110, 253, 1)",borderWidth:1}]},options:{indexAxis:"y",scales:{x:{beginAtZero:!0}},responsive:!0,plugins:{legend:{display:!1}}}});
     const ctxMarcas=document.getElementById("graficoMarcas"),marcaLabels=JSON.parse('{{ marca_labels|safe }}'),marcaData=JSON.parse('{{ marca_data|safe }}');new Chart(ctxMarcas,{type:"doughnut",data:{labels:marcaLabels,datasets:[{label:"# de Productos",data:marcaData,backgroundColor:["#0d6efd","#6f42c1","#d63384","#fd7e14","#198754","#ffc107"],hoverOffset:4}]},options:{responsive:!0}});
 </script>

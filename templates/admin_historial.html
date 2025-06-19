@@ -1,13 +1,10 @@
 {% extends "base.html" %}
-
 {% block title %}Historial de Actividad{% endblock %}
-
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="mb-0"><i class="bi bi-clipboard2-data-fill me-2"></i>Historial de Actividad</h1>
 </div>
 <p class="text-white-50 mb-4">Registro de las acciones importantes realizadas por los usuarios en el sistema.</p>
-
 <div class="card">
     <div class="card-body p-0">
         <div class="table-responsive">
@@ -26,45 +23,27 @@
                         <td class="text-nowrap">{{ log.fecha.strftime('%Y-%m-%d %H:%M:%S') }}</td>
                         <td>{{ log.usuario_username }}</td>
                         <td class="text-center">
-                            {% if 'CREADO' in log.accion or 'AÑADIDO' in log.accion %}
-                                <span class="badge bg-success">{{ log.accion }}</span>
-                            {% elif 'EDITADO' in log.accion or 'CAMBIADO' in log.accion or 'AJUSTADO' in log.accion %}
-                                <span class="badge bg-warning text-dark">{{ log.accion }}</span>
-                            {% elif 'ELIMINADO' in log.accion %}
-                                <span class="badge bg-danger">{{ log.accion }}</span>
-                            {% elif 'SESION' in log.accion %}
-                                <span class="badge bg-info text-dark">{{ log.accion }}</span>
-                            {% else %}
-                                <span class="badge bg-secondary">{{ log.accion }}</span>
-                            {% endif %}
+                            {% if 'CREADO' in log.accion or 'AÑADIDO' in log.accion %} <span class="badge text-bg-success">{{ log.accion }}</span>
+                            {% elif 'EDITADO' in log.accion or 'CAMBIADO' in log.accion or 'AJUSTADO' in log.accion %} <span class="badge text-bg-warning">{{ log.accion }}</span>
+                            {% elif 'ELIMINADO' in log.accion %} <span class="badge text-bg-danger">{{ log.accion }}</span>
+                            {% elif 'SESION' in log.accion %} <span class="badge text-bg-info">{{ log.accion }}</span>
+                            {% else %} <span class="badge text-bg-secondary">{{ log.accion }}</span> {% endif %}
                         </td>
                         <td>{{ log.descripcion }}</td>
                     </tr>
                     {% else %}
-                    <tr>
-                        <td colspan="4" class="text-center text-muted p-5">No hay actividad registrada todavía.</td>
-                    </tr>
+                    <tr><td colspan="4" class="text-center text-muted p-5">No hay actividad registrada todavía.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
     </div>
     {% if total_pages > 1 %}
-    <div class="card-footer bg-transparent border-top-0">
-        <nav>
-            <ul class="pagination justify-content-center mb-0">
-                <li class="page-item {{ 'disabled' if page <= 1 else '' }}">
-                    <a class="page-link" href="{{ url_for('ver_historial', page=page-1) }}">Anterior</a>
-                </li>
-                <li class="page-item active" aria-current="page">
-                  <span class="page-link">Página {{ page }} de {{ total_pages }}</span>
-                </li>
-                <li class="page-item {{ 'disabled' if page >= total_pages else '' }}">
-                    <a class="page-link" href="{{ url_for('ver_historial', page=page+1) }}">Siguiente</a>
-                </li>
-            </ul>
-        </nav>
-    </div>
+    <div class="card-footer bg-transparent"><nav><ul class="pagination justify-content-center mb-0">
+        <li class="page-item {{ 'disabled' if page <= 1 else '' }}"><a class="page-link" href="{{ url_for('ver_historial', page=page-1) }}">Anterior</a></li>
+        <li class="page-item active"><span class="page-link">{{ page }}</span></li>
+        <li class="page-item {{ 'disabled' if page >= total_pages else '' }}"><a class="page-link" href="{{ url_for('ver_historial', page=page+1) }}">Siguiente</a></li>
+    </ul></nav></div>
     {% endif %}
 </div>
 {% endblock %}
