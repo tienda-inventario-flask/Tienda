@@ -1,42 +1,144 @@
 {% extends "base.html" %}
-{% block title %}Factura {{ transaccion_id[:8] }}{% endblock %}
+
+{% block title %}Factura {{ transaccion_id[:8].upper() }}{% endblock %}
+
 {% block styles %}
 <style>
-    .invoice-container { max-width: 800px; margin: auto; background-color: var(--surface-white); padding: 40px; }
+    /* Estilos para la vista en pantalla */
+    .invoice-container {
+        max-width: 850px;
+        margin: 30px auto;
+        padding: 3rem;
+        background-color: var(--surface-white);
+        border: 1px solid var(--border-color);
+        box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.1);
+        color: #000; /* Texto oscuro sobre fondo blanco */
+    }
+    .invoice-header {
+        border-bottom: 2px solid var(--primary-blue);
+        padding-bottom: 1rem;
+        margin-bottom: 2rem;
+    }
+    .invoice-footer {
+        text-align: center;
+        margin-top: 3rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border-color);
+        font-size: 0.9rem;
+        color: #6c757d;
+    }
+    .totals-table {
+        width: 50%;
+        margin-left: auto;
+    }
+    .totals-table td, .totals-table th {
+        border: none;
+    }
+    .grand-total {
+        background-color: var(--primary-blue);
+        color: white;
+        font-size: 1.5rem;
+        font-weight: bold;
+    }
+
+    /* Estilos específicos para la impresión */
     @media print {
-        body { background-color: #fff !important; color: #000 !important; }
-        main.container { padding: 0 !important; margin: 0 !important; }
-        .invoice-container { color: #000 !important; background-color: #fff !important; box-shadow: none !important; margin: 0 !important; max-width: 100%; border-radius: 0;}
-        .table { color: #000 !important; }
-        .text-white, .text-muted, .text-primary, .lead { color: #000 !important; }
-        .no-print { display: none !important; }
+        body {
+            background-color: #fff !important; /* Fondo blanco para impresión */
+        }
+        main.container {
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+        .no-print {
+            display: none !important; /* Oculta la barra de navegación y botones */
+        }
+        .invoice-container {
+            box-shadow: none !important;
+            border: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            max-width: 100%;
+        }
     }
 </style>
 {% endblock %}
+
 {% block content %}
-<div class="invoice-container rounded shadow-sm">
-    <div class="d-flex justify-content-between align-items-start mb-4">
+<div class="invoice-container">
+    <div class="invoice-header d-flex justify-content-between align-items-center">
         <div>
-            <h2 class="fw-bold text-primary mb-1">{{ empresa.nombre_empresa }}</h2>
+            <h2 class="fw-bolder text-primary mb-1">{{ empresa.nombre_empresa }}</h2>
             <p class="text-muted mb-0">{{ empresa.direccion }}<br>Tel: {{ empresa.telefono }} | RNC: {{ empresa.rnc }}</p>
         </div>
         <h1 class="display-4 text-muted">FACTURA</h1>
     </div>
-    <div class="d-flex justify-content-between align-items-start mb-4 p-3 border rounded">
-        <div><strong class="text-muted">FACTURAR A:</strong><br>{{ cliente_nombre }}<br>{% if cliente_telefono %}Tel: {{ cliente_telefono }}{% endif %}</div>
-        <div class="text-end"><strong class="text-muted">Factura #:</strong> {{ transaccion_id[:8].upper() }}<br><strong class="text-muted">Fecha:</strong> {{ fecha_venta }}</div>
+
+    <div class="row invoice-details mb-4">
+        <div class="col-sm-6">
+            <h5 class="text-muted">FACTURAR A:</h5>
+            <strong>{{ cliente_nombre }}</strong>
+            {% if cliente_telefono %}<br>{{ cliente_telefono }}{% endif %}
+        </div>
+        <div class="col-sm-6 text-sm-end">
+            <h5 class="text-muted">Factura #</h5>
+            <p><strong>{{ transaccion_id[:8].upper() }}</strong></p>
+            <h5 class="text-muted">Fecha de Emisión</h5>
+            <p><strong>{{ fecha_venta }}</strong></p>
+        </div>
     </div>
-    <table class="table table-bordered">
-        <thead><tr class="table-light"><th>Descripción</th><th class="text-center">Cantidad</th><th class="text-end">Precio Unit.</th><th class="text-end">Subtotal</th></tr></thead>
-        <tbody>
-            {% for item in items_vendidos %}
-            <tr><td>{{ item.nombre }}</td><td class="text-center">{{ item.cantidad }}</td><td class="text-end">${{ "%.2f"|format(item.precio_total / item.cantidad) }}</td><td class="text-end">${{ "%.2f"|format(item.precio_total) }}</td></tr>
-            {% endfor %}
-        </tbody>
-        <tfoot><tr><td colspan="2"></td><td class="text-end fw-bold align-middle">TOTAL</td><td class="text-end fw-bold fs-4 text-primary">${{ "%.2f"|format(total_general) }}</td></tr></tfoot>
-    </table>
+
+    <div class="table-responsive">
+        <table class="table table-bordered">
+            <thead class="bg-light">
+                <tr>
+                    <th scope="col" class="fw-bold">Descripción</th>
+                    <th scope="col" class="text-center fw-bold">Cantidad</th>
+                    <th scope="col" class="text-end fw-bold">Precio Unit.</th>
+                    <th scope="col" class="text-end fw-bold">Subtotal</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items_vendidos %}
+                <tr>
+                    <td>{{ item.nombre }}</td>
+                    <td class="text-center">{{ item.cantidad }}</td>
+                    <td class="text-end">${{ "%.2f"|format(item.precio_total / item.cantidad) }}</td>
+                    <td class="text-end">${{ "%.2f"|format(item.precio_total) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="row justify-content-end">
+        <div class="col-sm-5">
+            <table class="table totals-table">
+                <tbody>
+                    <tr>
+                        <th class="text-muted">Subtotal:</th>
+                        <td class="text-end">${{ "%.2f"|format(total_general) }}</td>
+                    </tr>
+                    <tr>
+                        <th class="text-muted">Impuestos (0%):</th>
+                        <td class="text-end">$0.00</td>
+                    </tr>
+                    <tr class="fw-bold">
+                        <th class="align-middle">Total General:</th>
+                        <td class="text-end grand-total p-3">${{ "%.2f"|format(total_general) }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="invoice-footer">
+        <p>¡Gracias por su compra!</p>
+    </div>
+
     <div class="text-center mt-4 no-print">
-        <button onclick="window.print()" class="btn btn-primary"><i class="bi bi-printer me-1"></i> Imprimir Factura</button>
+        <a href="{{ url_for('pos') }}" class="btn btn-secondary"><i class="bi bi-arrow-left me-1"></i> Nueva Venta</a>
+        <button onclick="window.print()" class="btn btn-primary"><i class="bi bi-printer me-1"></i> Imprimir o Guardar como PDF</button>
     </div>
 </div>
 {% endblock %}
