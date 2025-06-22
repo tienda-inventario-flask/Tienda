@@ -16,7 +16,7 @@ load_dotenv()
 
 app = Flask(__name__)
 # La clave secreta ahora se lee de una variable de entorno para mayor seguridad en producción
-app.secret_key = os.environ.get('SECRET_KEY', 'ricardo123')
+app.secret_key = os.environ.get('SECRET_KEY', 'una_clave_secreta_por_defecto_para_desarrollo_local_muy_larga')
 PER_PAGE = 10
 
 # --- FUNCIÓN DE CONEXIÓN A POSTGRESQL ---
@@ -120,7 +120,6 @@ def logout():
     session.clear()
     flash('Has cerrado sesión exitosamente.', 'success')
     return redirect(url_for('login'))
-
 
 # --- RUTAS DE SUPER-ADMINISTRADOR ---
 @app.route('/superadmin')
@@ -245,6 +244,7 @@ def cambiar_password():
         return redirect(url_for('cambiar_password'))
     return render_template('cambiar_password.html')
 
+
 # --- RUTAS PRINCIPALES Y CRUD ---
 @app.route('/')
 @login_required
@@ -327,11 +327,10 @@ def editar_producto(producto_id):
         return redirect(url_for('mostrar_inventario'))
     return render_template('editar_producto.html', producto=producto)
 
-@app.route('/eliminar/<int:producto_id>', methods=['POST']) # <-- AÑADIR/VERIFICAR ESTO
+@app.route('/eliminar/<int:producto_id>', methods=['POST'])
 @login_required
 @admin_required
 def eliminar_producto(producto_id):
-    # ... (la lógica interna no cambia)
     producto = get_producto(producto_id)
     if producto:
         conn = get_db_connection()
@@ -361,23 +360,23 @@ def ver_archivados():
     conn.close()
     return render_template('archivados.html', inventario=productos_archivados, page=page, total_pages=total_pages, PER_PAGE=PER_PAGE)
 
-@app.route('/eliminar/<int:producto_id>', methods=['POST']) # <-- AÑADIR/VERIFICAR ESTO
+@app.route('/reactivar/<int:producto_id>', methods=['POST'])
 @login_required
 @admin_required
-def eliminar_producto(producto_id):
-    # ... (la lógica interna no cambia)
+def reactivar_producto(producto_id):
     producto = get_producto(producto_id)
     if producto:
         conn = get_db_connection()
         with conn.cursor() as cur:
-            cur.execute('UPDATE productos SET activo = FALSE WHERE id = %s AND empresa_id = %s', (producto_id, session['empresa_id']))
+            cur.execute('UPDATE productos SET activo = TRUE WHERE id = %s AND empresa_id = %s', (producto_id, session['empresa_id']))
         conn.commit()
         conn.close()
-        registrar_actividad('PRODUCTO_DESACTIVADO', f"Archivó el producto '{producto['nombre']}' (ID: {producto_id}).")
-        flash('Producto archivado con éxito.', 'warning')
+        registrar_actividad('PRODUCTO_REACTIVADO', f"Reactivó el producto '{producto['nombre']}' (ID: {producto_id}).")
+        flash('Producto reactivado con éxito.', 'success')
     else: flash('Producto no encontrado.', 'danger')
-    return redirect(url_for('mostrar_inventario'))
+    return redirect(url_for('ver_archivados'))
 
+# --- RUTAS DE REPORTES Y ADMIN ---
 @app.route('/reportes')
 @login_required
 def reportes():
@@ -389,10 +388,8 @@ def reportes():
         cur.execute('SELECT marca, COUNT(id) as total FROM productos WHERE empresa_id = %s AND activo = TRUE GROUP BY marca', (empresa_id,))
         productos_por_marca = cur.fetchall()
     conn.close()
-    stock_labels = [row['nombre'] for row in top_stock_productos]
-    stock_data = [row['cantidad'] for row in top_stock_productos]
-    marca_labels = [row['marca'] for row in productos_por_marca]
-    marca_data = [row['total'] for row in productos_por_marca]
+    stock_labels, stock_data = [row['nombre'] for row in top_stock_productos], [row['cantidad'] for row in top_stock_productos]
+    marca_labels, marca_data = [row['marca'] for row in productos_por_marca], [row['total'] for row in productos_por_marca]
     return render_template('reportes.html', stock_labels=json.dumps(stock_labels), stock_data=json.dumps(stock_data), marca_labels=json.dumps(marca_labels), marca_data=json.dumps(marca_data))
 
 @app.route('/exportar_csv')
@@ -512,9 +509,7 @@ def ver_historial():
 
 @app.route('/pos')
 @login_required
-def pos():
-    # Ya no necesitamos pasarle los productos populares, solo renderizar la plantilla.
-    return render_template('pos.html')
+def pos(): return render_template('pos.html')
 
 @app.route('/api/buscar_productos')
 @login_required
@@ -530,7 +525,7 @@ def buscar_productos_api():
                         (session['empresa_id'], search_term, search_term))
             productos = cur.fetchall()
         return jsonify([dict(row) for row in productos])
-    except psycopg2.Error as e:
+    except Exception as e:
         print(f"Error en API de búsqueda: {e}")
         return jsonify({'error': 'Ocurrió un error en la base de datos'}), 500
     finally:
@@ -592,7 +587,7 @@ def procesar_venta():
         flash(f"Error al procesar la venta: {e}", 'danger')
         return redirect(url_for('pos'))
     finally:
-        conn.close()
+        if conn: conn.close()
 
 @app.route('/factura/<string:transaccion_id>')
 @login_required
