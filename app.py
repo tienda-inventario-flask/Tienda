@@ -11,13 +11,11 @@ from flask import Flask, render_template, request, redirect, url_for, flash, ses
 from functools import wraps
 from dotenv import load_dotenv
 
-# Carga las variables de entorno del archivo .env (para desarrollo local)
 load_dotenv()
 
 app = Flask(__name__)
-# La clave secreta ahora se lee de una variable de entorno para mayor seguridad en producción
-app.secret_key = os.environ.get('SECRET_KEY', 'una_clave_secreta_por_defecto_para_desarrollo_local')
-PER_PAGE = 10 # Items por página para paginación
+app.secret_key = os.environ.get('SECRET_KEY', 'ricardo123')
+PER_PAGE = 10
 
 # --- FUNCIÓN DE CONEXIÓN A POSTGRESQL ---
 def get_db_connection():
@@ -72,7 +70,7 @@ def login():
         username, password = request.form['username'], request.form['password']
         conn = get_db_connection()
         if not conn:
-            flash('Error de conexión con la base de datos. Inténtalo más tarde.', 'danger')
+            flash('Error de conexión con la base de datos.', 'danger')
             return render_template('login.html')
         try:
             with conn.cursor(cursor_factory=DictCursor) as cur:
@@ -97,12 +95,8 @@ def login():
 def registro():
     if 'user_id' in session: return redirect(url_for('mostrar_inventario'))
     if request.method == 'POST':
-        nombre_empresa = request.form['nombre_empresa']
-        direccion = request.form.get('direccion', '')
-        telefono = request.form.get('telefono', '')
-        rnc = request.form.get('rnc', '')
-        username = request.form['username']
-        password = request.form['password']
+        nombre_empresa, direccion, telefono, rnc = request.form['nombre_empresa'], request.form.get('direccion', ''), request.form.get('telefono', ''), request.form.get('rnc', '')
+        username, password = request.form['username'], request.form['password']
         conn = get_db_connection()
         with conn.cursor(cursor_factory=DictCursor) as cur:
             cur.execute('SELECT id FROM empresas WHERE nombre_empresa = %s', (nombre_empresa,))
@@ -110,12 +104,10 @@ def registro():
                 flash('Ya existe una empresa con ese nombre.', 'danger')
                 conn.close()
                 return redirect(url_for('registro'))
-            cur.execute('INSERT INTO empresas (nombre_empresa, direccion, telefono, rnc) VALUES (%s, %s, %s, %s) RETURNING id',
-                        (nombre_empresa, direccion, telefono, rnc))
+            cur.execute('INSERT INTO empresas (nombre_empresa, direccion, telefono, rnc) VALUES (%s, %s, %s, %s) RETURNING id', (nombre_empresa, direccion, telefono, rnc))
             empresa_id = cur.fetchone()['id']
             hashed_password = generate_password_hash(password)
-            cur.execute('INSERT INTO usuarios (empresa_id, username, password, rol) VALUES (%s, %s, %s, %s)',
-                         (empresa_id, username, hashed_password, 'admin'))
+            cur.execute('INSERT INTO usuarios (empresa_id, username, password, rol) VALUES (%s, %s, %s, %s)', (empresa_id, username, hashed_password, 'admin'))
         conn.commit()
         conn.close()
         flash('¡Empresa y usuario administrador creados con éxito! Por favor, inicia sesión.', 'success')
@@ -142,8 +134,7 @@ def editar_empresa():
         if not nombre_empresa: flash('El nombre de la empresa no puede estar vacío.', 'danger')
         else:
             with conn.cursor() as cur:
-                cur.execute('UPDATE empresas SET nombre_empresa = %s, direccion = %s, telefono = %s, rnc = %s WHERE id = %s',
-                             (nombre_empresa, direccion, telefono, rnc, empresa_id))
+                cur.execute('UPDATE empresas SET nombre_empresa = %s, direccion = %s, telefono = %s, rnc = %s WHERE id = %s', (nombre_empresa, direccion, telefono, rnc, empresa_id))
             conn.commit()
             session['nombre_empresa'] = nombre_empresa
             registrar_actividad('EMPRESA_EDITADA', 'Se actualizaron los datos del perfil de la empresa.')
@@ -189,7 +180,8 @@ def mostrar_inventario():
     with conn.cursor(cursor_factory=DictCursor) as cur:
         empresa_id, page, query = session['empresa_id'], request.args.get('page', 1, type=int), request.args.get('q')
         offset = (page - 1) * PER_PAGE
-        base_where, params = ' WHERE empresa_id = %s ', [empresa_id]
+        base_where = ' WHERE empresa_id = %s AND activo = TRUE '
+        params = [empresa_id]
         if query:
             search_term = f"%{query}%"
             where_clause = base_where + ' AND (nombre ILIKE %s OR marca ILIKE %s)'
@@ -265,13 +257,42 @@ def eliminar_producto(producto_id):
     if producto:
         conn = get_db_connection()
         with conn.cursor() as cur:
-            cur.execute('DELETE FROM productos WHERE id = %s AND empresa_id = %s', (producto_id, session['empresa_id']))
+            cur.execute('UPDATE productos SET activo = FALSE WHERE id = %s AND empresa_id = %s', (producto_id, session['empresa_id']))
         conn.commit()
         conn.close()
-        registrar_actividad('PRODUCTO_ELIMINADO', f"Eliminó el producto '{producto['nombre']}' (ID: {producto_id}).")
-        flash('Producto eliminado.', 'danger')
+        registrar_actividad('PRODUCTO_DESACTIVADO', f"Archivó el producto '{producto['nombre']}' (ID: {producto_id}).")
+        flash('Producto archivado con éxito.', 'warning')
     else: flash('Producto no encontrado.', 'danger')
     return redirect(url_for('mostrar_inventario'))
+
+# --- RUTAS DE ARCHIVADOS ---
+@app.route('/inventario/archivados')
+@login_required
+@admin_required
+def ver_archivados():
+    conn = get_db_connection()
+    with conn.cursor(cursor_factory=DictCursor) as cur:
+        cur.execute('SELECT * FROM productos WHERE empresa_id = %s AND activo = FALSE ORDER BY id DESC', (session['empresa_id'],))
+        productos_archivados = cur.fetchall()
+    conn.close()
+    return render_template('archivados.html', inventario=productos_archivados)
+
+@app.route('/reactivar/<int:producto_id>')
+@login_required
+@admin_required
+def reactivar_producto(producto_id):
+    producto = get_producto(producto_id)
+    if producto:
+        conn = get_db_connection()
+        with conn.cursor() as cur:
+            cur.execute('UPDATE productos SET activo = TRUE WHERE id = %s AND empresa_id = %s', (producto_id, session['empresa_id']))
+        conn.commit()
+        conn.close()
+        registrar_actividad('PRODUCTO_REACTIVADO', f"Reactivó el producto '{producto['nombre']}' (ID: {producto_id}).")
+        flash('Producto reactivado con éxito.', 'success')
+    else: flash('Producto no encontrado.', 'danger')
+    return redirect(url_for('ver_archivados'))
+
 
 # --- RUTAS DE REPORTES, ADMIN, POS y APIs ---
 @app.route('/reportes')
@@ -280,9 +301,9 @@ def reportes():
     conn = get_db_connection()
     with conn.cursor(cursor_factory=DictCursor) as cur:
         empresa_id = session['empresa_id']
-        cur.execute('SELECT nombre, cantidad FROM productos WHERE empresa_id = %s ORDER BY cantidad DESC LIMIT 5', (empresa_id,))
+        cur.execute('SELECT nombre, cantidad FROM productos WHERE empresa_id = %s AND activo = TRUE ORDER BY cantidad DESC LIMIT 5', (empresa_id,))
         top_stock_productos = cur.fetchall()
-        cur.execute('SELECT marca, COUNT(id) as total FROM productos WHERE empresa_id = %s GROUP BY marca', (empresa_id,))
+        cur.execute('SELECT marca, COUNT(id) as total FROM productos WHERE empresa_id = %s AND activo = TRUE GROUP BY marca', (empresa_id,))
         productos_por_marca = cur.fetchall()
     conn.close()
     stock_labels = [row['nombre'] for row in top_stock_productos]
@@ -296,7 +317,7 @@ def reportes():
 def exportar_csv():
     conn = get_db_connection()
     with conn.cursor() as cur:
-        cur.execute('SELECT id, nombre, marca, modelo, precio, cantidad FROM productos WHERE empresa_id = %s ORDER BY id', (session['empresa_id'],))
+        cur.execute('SELECT id, nombre, marca, modelo, precio, cantidad FROM productos WHERE empresa_id = %s AND activo = TRUE ORDER BY id', (session['empresa_id'],))
         productos = cur.fetchall()
     conn.close()
     output, writer = io.StringIO(), csv.writer(output)
@@ -304,7 +325,7 @@ def exportar_csv():
     for producto in productos: writer.writerow(producto)
     output.seek(0)
     response = make_response(output.getvalue())
-    response.headers['Content-Disposition'] = 'attachment; filename=inventario.csv'
+    response.headers['Content-Disposition'] = 'attachment; filename=inventario_activo.csv'
     response.headers['Content-type'] = 'text/csv'
     return response
 
@@ -357,13 +378,16 @@ def cambiar_rol(usuario_id):
         return redirect(url_for('gestionar_usuarios'))
     conn = get_db_connection()
     with conn.cursor(cursor_factory=DictCursor) as cur:
-        cur.execute('SELECT username FROM usuarios WHERE id = %s', (usuario_id,))
+        cur.execute('SELECT username FROM usuarios WHERE id = %s AND empresa_id = %s', (usuario_id, session['empresa_id']))
         user_to_change = cur.fetchone()
-        cur.execute('UPDATE usuarios SET rol = %s WHERE id = %s AND empresa_id = %s', (nuevo_rol, usuario_id, session['empresa_id']))
-    conn.commit()
+        if user_to_change:
+            cur.execute('UPDATE usuarios SET rol = %s WHERE id = %s', (nuevo_rol, usuario_id))
+            conn.commit()
+            registrar_actividad('ROL_CAMBIADO', f"Cambió el rol del usuario '{user_to_change['username']}' (ID: {usuario_id}) a '{nuevo_rol}'.")
+            flash('Rol de usuario actualizado con éxito.', 'success')
+        else:
+            flash('Usuario no encontrado.', 'danger')
     conn.close()
-    registrar_actividad('ROL_CAMBIADO', f"Cambió el rol del usuario '{user_to_change['username']}' (ID: {usuario_id}) a '{nuevo_rol}'.")
-    flash('Rol de usuario actualizado con éxito.', 'success')
     return redirect(url_for('gestionar_usuarios'))
 
 @app.route('/admin/eliminar_usuario/<int:usuario_id>')
@@ -375,10 +399,10 @@ def eliminar_usuario(usuario_id):
         return redirect(url_for('gestionar_usuarios'))
     conn = get_db_connection()
     with conn.cursor(cursor_factory=DictCursor) as cur:
-        cur.execute('SELECT username FROM usuarios WHERE id = %s', (usuario_id,))
+        cur.execute('SELECT username FROM usuarios WHERE id = %s AND empresa_id = %s', (usuario_id, session['empresa_id']))
         user_to_delete = cur.fetchone()
         if user_to_delete:
-            cur.execute('DELETE FROM usuarios WHERE id = %s AND empresa_id = %s', (usuario_id, session['empresa_id']))
+            cur.execute('DELETE FROM usuarios WHERE id = %s', (usuario_id,))
             conn.commit()
             registrar_actividad('USUARIO_ELIMINADO', f"Eliminó al usuario '{user_to_delete['username']}' (ID: {usuario_id}).")
             flash('Usuario eliminado con éxito.', 'success')
@@ -411,26 +435,21 @@ def pos(): return render_template('pos.html')
 @login_required
 def buscar_productos_api():
     query = request.args.get('q', '').strip()
-    if not query:
-        return jsonify([])
+    if not query: return jsonify([])
     conn = get_db_connection()
-    if not conn:
-        return jsonify({'error': 'Fallo en la conexión a la base de datos'}), 500
+    if not conn: return jsonify({'error': 'Fallo en la conexión a la base de datos'}), 500
     try:
         with conn.cursor(cursor_factory=DictCursor) as cur:
             search_term = f"%{query}%"
-            cur.execute(
-                'SELECT id, nombre, precio, cantidad FROM productos WHERE empresa_id = %s AND (nombre ILIKE %s OR marca ILIKE %s) LIMIT 10',
-                (session['empresa_id'], search_term, search_term)
-            )
+            cur.execute('SELECT id, nombre, precio, cantidad FROM productos WHERE empresa_id = %s AND activo = TRUE AND (nombre ILIKE %s OR marca ILIKE %s) LIMIT 10',
+                        (session['empresa_id'], search_term, search_term))
             productos = cur.fetchall()
         return jsonify([dict(row) for row in productos])
     except psycopg2.Error as e:
         print(f"Error en API de búsqueda: {e}")
         return jsonify({'error': 'Ocurrió un error en la base de datos'}), 500
     finally:
-        if conn:
-            conn.close()
+        if conn: conn.close()
 
 @app.route('/api/actualizar_stock/<int:producto_id>', methods=['POST'])
 @login_required
