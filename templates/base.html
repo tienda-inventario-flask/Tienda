@@ -85,7 +85,7 @@
 
         <div class="main-content">
              {% if session.user_id %}
-            <nav class="navbar navbar-dark d-lg-none" style="background-color: var(--surface-dark);">
+            <nav class="navbar navbar-dark d-lg-none" style="background-color: #010409;">
                 <div class="container-fluid">
                     <a class="navbar-brand d-flex align-items-center" href="{{ url_for('mostrar_inventario') }}">
                         <i class="bi bi-box-seam-fill me-2 fs-2" style="color: var(--accent-color);"></i>
@@ -98,7 +98,7 @@
             </nav>
             {% endif %}
 
-            <div class="p-4">
+            <div class="p-3 p-md-4">
                 {% with messages = get_flashed_messages(with_categories=true) %}
                   {% if messages %}{% for category, message in messages %}<div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">{{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>{% endfor %}{% endif %}
                 {% endwith %}
@@ -108,22 +108,25 @@
         </div>
     </div>
     
-    <div class="offcanvas offcanvas-start" tabindex="-1" id="offcanvasNavbar" style="background-color: var(--surface-dark);">
+    <div class="offcanvas offcanvas-start text-bg-dark" tabindex="-1" id="offcanvasNavbar">
         <div class="offcanvas-header">
-            <h5 class="offcanvas-title"><i class="bi bi-box-seam-fill me-2 text-primary-emphasis"></i> InvenSys</h5>
+            <h5 class="offcanvas-title"><i class="bi bi-box-seam-fill me-2" style="color: var(--accent-color);"></i> InvenSys</h5>
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
         </div>
         <div class="offcanvas-body">
             <ul class="nav nav-pills flex-column mb-auto">
                 {% if session.rol != 'superadmin' %}
-                <li class="nav-item"><a href="{{ url_for('mostrar_inventario') }}" class="nav-link {% if request.endpoint == 'mostrar_inventario' %}active{% endif %}"><i class="bi bi-grid-1x2-fill me-2"></i> Dashboard</a></li>
-                <li><a href="{{ url_for('pos') }}" class="nav-link {% if request.endpoint == 'pos' %}active{% endif %}"><i class="bi bi-cart-plus-fill me-2"></i> Punto de Venta</a></li>
-                <li><a href="{{ url_for('reportes') }}" class="nav-link {% if request.endpoint == 'reportes' %}active{% endif %}"><i class="bi bi-bar-chart-line-fill me-2"></i> Reportes</a></li>
+                <li class="nav-item"><a href="{{ url_for('mostrar_inventario') }}" class="nav-link text-white {% if request.endpoint == 'mostrar_inventario' %}active{% endif %}"><i class="bi bi-grid-1x2-fill me-2"></i> Dashboard</a></li>
+                <li><a href="{{ url_for('pos') }}" class="nav-link text-white {% if request.endpoint == 'pos' %}active{% endif %}"><i class="bi bi-cart-plus-fill me-2"></i> Punto de Venta</a></li>
+                <li><a href="{{ url_for('reportes') }}" class="nav-link text-white {% if request.endpoint == 'reportes' %}active{% endif %}"><i class="bi bi-bar-chart-line-fill me-2"></i> Reportes</a></li>
                 {% endif %}
                 {% if session.rol == 'admin' %}
                 <hr><li class="nav-item-header small text-muted text-uppercase ps-3">Administración</li>
-                <li><a href="{{ url_for('gestionar_usuarios') }}" class="nav-link {% if 'usuario' in request.endpoint %}active{% endif %}"><i class="bi bi-people-fill me-2"></i> Usuarios</a></li>
-                <li><a href="{{ url_for('ver_historial') }}" class="nav-link {% if request.endpoint == 'ver_historial' %}active{% endif %}"><i class="bi bi-clipboard2-data-fill me-2"></i> Historial</a></li>
+                <li><a href="{{ url_for('gestionar_usuarios') }}" class="nav-link text-white {% if 'usuario' in request.endpoint %}active{% endif %}"><i class="bi bi-people-fill me-2"></i> Usuarios</a></li>
+                <li><a href="{{ url_for('ver_historial') }}" class="nav-link text-white {% if request.endpoint == 'ver_historial' %}active{% endif %}"><i class="bi bi-clipboard2-data-fill me-2"></i> Historial</a></li>
+                {% endif %}
+                {% if session.rol == 'superadmin' %}
+                <li class="nav-item"><a href="{{ url_for('superadmin_dashboard') }}" class="nav-link text-white {% if 'superadmin' in request.endpoint %}active{% endif %}"><i class="bi bi-shield-lock-fill me-2"></i> Panel Super Admin</a></li>
                 {% endif %}
             </ul>
             <hr>

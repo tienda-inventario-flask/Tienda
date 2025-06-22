@@ -11,9 +11,11 @@ from flask import Flask, render_template, request, redirect, url_for, flash, ses
 from functools import wraps
 from dotenv import load_dotenv
 
+# Carga las variables de entorno del archivo .env (para desarrollo local)
 load_dotenv()
 
 app = Flask(__name__)
+# La clave secreta ahora se lee de una variable de entorno para mayor seguridad en producción
 app.secret_key = os.environ.get('SECRET_KEY', 'ricardo123')
 PER_PAGE = 10
 
@@ -22,7 +24,7 @@ def get_db_connection():
     try:
         conn = psycopg2.connect(os.environ.get('DATABASE_URL'))
         return conn
-    except psycopg2.OperationalError as e:
+    except Exception as e:
         print(f"Error de conexión a la base de datos: {e}")
         return None
 
@@ -38,7 +40,7 @@ def registrar_actividad(accion, descripcion=""):
                     (session.get('empresa_id', 0), session['user_id'], session['username'], accion, descripcion)
                 )
             conn.commit()
-        except psycopg2.Error as e:
+        except Exception as e:
             print(f"Error al registrar actividad: {e}")
         finally:
             conn.close()
@@ -74,7 +76,8 @@ def superadmin_required(f):
 # --- RUTAS DE AUTENTICACIÓN ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    if 'user_id' in session: return redirect(url_for('mostrar_inventario'))
+    if 'user_id' in session:
+        return redirect(url_for('superadmin_dashboard') if session.get('rol') == 'superadmin' else url_for('mostrar_inventario'))
     if request.method == 'POST':
         username, password = request.form['username'], request.form['password']
         conn = get_db_connection()
@@ -89,14 +92,16 @@ def login():
                     cur.execute('SELECT nombre_empresa FROM empresas WHERE id = %s', (user['empresa_id'],))
                     empresa = cur.fetchone()
                     session.clear()
-                    session['user_id'], session['username'], session['rol'], session['empresa_id'], session['nombre_empresa'] = user['id'], user['username'], user['rol'], user['empresa_id'], empresa['nombre_empresa']
-                    registrar_actividad('INICIO_SESION', f"El usuario '{user['username']}' ha iniciado sesión.")
-                    # Redirige al panel correcto según el rol
+                    session.update({
+                        'user_id': user['id'], 'username': user['username'], 'rol': user['rol'],
+                        'empresa_id': user['empresa_id'], 'nombre_empresa': empresa['nombre_empresa']
+                    })
+                    registrar_actividad('INICIO_SESION')
                     if user['rol'] == 'superadmin':
                         return redirect(url_for('superadmin_dashboard'))
                     return redirect(url_for('mostrar_inventario'))
             flash('Nombre de usuario o contraseña incorrectos.', 'danger')
-        except psycopg2.Error as e:
+        except Exception as e:
             print(f"Error de DB en login: {e}")
             flash('Ocurrió un error al intentar iniciar sesión.', 'danger')
         finally:
@@ -111,10 +116,11 @@ def registro():
 @app.route('/logout')
 @login_required
 def logout():
-    registrar_actividad('CIERRE_SESION', f"El usuario '{session['username']}' ha cerrado sesión.")
+    registrar_actividad('CIERRE_SESION')
     session.clear()
     flash('Has cerrado sesión exitosamente.', 'success')
     return redirect(url_for('login'))
+
 
 # --- RUTAS DE SUPER-ADMINISTRADOR ---
 @app.route('/superadmin')
@@ -123,7 +129,7 @@ def logout():
 def superadmin_dashboard():
     conn = get_db_connection()
     with conn.cursor(cursor_factory=DictCursor) as cur:
-        cur.execute('SELECT e.*, (SELECT COUNT(u.id) FROM usuarios u WHERE u.empresa_id = e.id) as user_count FROM empresas e ORDER BY e.nombre_empresa')
+        cur.execute('SELECT e.*, (SELECT COUNT(u.id) FROM usuarios u WHERE u.empresa_id = e.id) as user_count FROM empresas e WHERE e.id != %s ORDER BY e.nombre_empresa', (session['empresa_id'],))
         empresas = cur.fetchall()
     conn.close()
     return render_template('superadmin_dashboard.html', empresas=empresas)
@@ -133,9 +139,7 @@ def superadmin_dashboard():
 @superadmin_required
 def crear_empresa():
     if request.method == 'POST':
-        nombre_empresa = request.form['nombre_empresa']
-        admin_username = request.form['admin_username']
-        admin_password = request.form['admin_password']
+        nombre_empresa, admin_username, admin_password = request.form['nombre_empresa'], request.form['admin_username'], request.form['admin_password']
         if not all([nombre_empresa, admin_username, admin_password]):
             flash('Todos los campos son obligatorios.', 'danger')
             return render_template('crear_empresa.html')
@@ -153,20 +157,45 @@ def crear_empresa():
                 cur.execute('INSERT INTO empresas (nombre_empresa) VALUES (%s) RETURNING id', (nombre_empresa,))
                 empresa_id = cur.fetchone()['id']
                 hashed_password = generate_password_hash(admin_password)
-                cur.execute('INSERT INTO usuarios (empresa_id, username, password, rol) VALUES (%s, %s, %s, %s)',
-                            (empresa_id, admin_username, hashed_password, 'admin'))
+                cur.execute('INSERT INTO usuarios (empresa_id, username, password, rol) VALUES (%s, %s, %s, %s)', (empresa_id, admin_username, hashed_password, 'admin'))
             conn.commit()
-            registrar_actividad('EMPRESA_CREADA (SUPERADMIN)', f"Creó la empresa '{nombre_empresa}' y su admin '{admin_username}'.")
+            registrar_actividad('EMPRESA_CREADA', f"Creó la empresa '{nombre_empresa}' y su admin '{admin_username}'.")
             flash(f'Empresa "{nombre_empresa}" creada con éxito.', 'success')
             return redirect(url_for('superadmin_dashboard'))
-        except psycopg2.Error as e:
+        except Exception as e:
             conn.rollback()
             flash(f"Error de base de datos: {e}", "danger")
         finally:
-            conn.close()
+            if conn: conn.close()
     return render_template('crear_empresa.html')
 
-# --- El resto de todas las demás rutas de la aplicación ---
+@app.route('/superadmin/eliminar_empresa/<int:empresa_id>', methods=['POST'])
+@login_required
+@superadmin_required
+def eliminar_empresa(empresa_id):
+    if empresa_id == session['empresa_id']:
+        flash('No puedes eliminar tu propia empresa de sistema.', 'danger')
+        return redirect(url_for('superadmin_dashboard'))
+    conn = get_db_connection()
+    try:
+        with conn.cursor(cursor_factory=DictCursor) as cur:
+            cur.execute('SELECT nombre_empresa FROM empresas WHERE id = %s', (empresa_id,))
+            empresa = cur.fetchone()
+            if empresa:
+                cur.execute('DELETE FROM empresas WHERE id = %s', (empresa_id,))
+                conn.commit()
+                registrar_actividad('EMPRESA_ELIMINADA', f"Eliminó la empresa '{empresa['nombre_empresa']}' (ID: {empresa_id}).")
+                flash(f"La empresa '{empresa['nombre_empresa']}' y todos sus datos han sido eliminados.", 'success')
+            else:
+                flash('La empresa no existe.', 'danger')
+    except Exception as e:
+        conn.rollback()
+        flash(f"Error de base de datos: {e}", "danger")
+    finally:
+        if conn: conn.close()
+    return redirect(url_for('superadmin_dashboard'))
+
+# --- RUTAS DE GESTIÓN DE CUENTA ---
 @app.route('/empresa/editar', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -216,6 +245,7 @@ def cambiar_password():
         return redirect(url_for('cambiar_password'))
     return render_template('cambiar_password.html')
 
+# --- RUTAS PRINCIPALES Y CRUD ---
 @app.route('/')
 @login_required
 def mostrar_inventario():
@@ -249,10 +279,12 @@ def mostrar_inventario():
 
 def get_producto(producto_id):
     conn = get_db_connection()
-    with conn.cursor(cursor_factory=DictCursor) as cur:
-        cur.execute('SELECT * FROM productos WHERE id = %s AND empresa_id = %s', (producto_id, session['empresa_id']))
-        producto = cur.fetchone()
-    conn.close()
+    producto = None
+    if conn:
+        with conn.cursor(cursor_factory=DictCursor) as cur:
+            cur.execute('SELECT * FROM productos WHERE id = %s AND empresa_id = %s', (producto_id, session['empresa_id']))
+            producto = cur.fetchone()
+        conn.close()
     return producto
 
 @app.route('/agregar', methods=['GET', 'POST'])
@@ -295,7 +327,7 @@ def editar_producto(producto_id):
         return redirect(url_for('mostrar_inventario'))
     return render_template('editar_producto.html', producto=producto)
 
-@app.route('/eliminar/<int:producto_id>')
+@app.route('/eliminar/<int:producto_id>', methods=['POST'])
 @login_required
 @admin_required
 def eliminar_producto(producto_id):
@@ -328,7 +360,7 @@ def ver_archivados():
     conn.close()
     return render_template('archivados.html', inventario=productos_archivados, page=page, total_pages=total_pages, PER_PAGE=PER_PAGE)
 
-@app.route('/reactivar/<int:producto_id>')
+@app.route('/reactivar/<int:producto_id>', methods=['POST'])
 @login_required
 @admin_required
 def reactivar_producto(producto_id):
@@ -439,7 +471,7 @@ def cambiar_rol(usuario_id):
     conn.close()
     return redirect(url_for('gestionar_usuarios'))
 
-@app.route('/admin/eliminar_usuario/<int:usuario_id>')
+@app.route('/admin/eliminar_usuario/<int:usuario_id>', methods=['POST'])
 @login_required
 @admin_required
 def eliminar_usuario(usuario_id):

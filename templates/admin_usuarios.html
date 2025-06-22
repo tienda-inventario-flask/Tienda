@@ -2,7 +2,7 @@
 {% block title %}Administrar Usuarios{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h1 class="mb-0">Panel de Administración de Usuarios</h1>
+    <h1 class="mb-0">Administración de Usuarios</h1>
     <a href="{{ url_for('agregar_usuario') }}" class="btn btn-primary"><i class="bi bi-person-plus-fill me-1"></i> Añadir Empleado</a>
 </div>
 <div class="card">
@@ -23,7 +23,7 @@
                         <td>{{ usuario.creado.strftime('%Y-%m-%d') }}</td>
                         <td>
                             {% if session.user_id != usuario.id %}
-                            <a href="{{ url_for('eliminar_usuario', usuario_id=usuario.id) }}" class="btn btn-danger btn-sm" onclick="return confirm('¿Estás seguro?');">Eliminar Usuario</a>
+                            <a href="{{ url_for('eliminar_usuario', usuario_id=usuario.id) }}" class="btn btn-danger btn-sm" onclick="return confirm('¿Estás seguro?');"><i class="bi bi-trash me-1"></i>Eliminar Usuario</a>
                             {% else %}<button class="btn btn-danger btn-sm" disabled>Eliminar</button>{% endif %}
                         </td>
                     </tr>

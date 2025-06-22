@@ -10,15 +10,9 @@
                   {% if messages %}{% for category, message in messages %}<div class="alert alert-{{ category }}">{{ message }}</div>{% endfor %}{% endif %}
                 {% endwith %}
                 <form method="POST">
-                    <div class="mb-3">
-                        <label for="username" class="form-label">Nombre de Usuario del Empleado</label>
-                        <input type="text" class="form-control" id="username" name="username" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="password" class="form-label">Contraseña Temporal</label>
-                        <input type="password" class="form-control" id="password" name="password" required>
-                        <div class="form-text">El empleado podrá cambiar esta contraseña más tarde.</div>
-                    </div>
+                    <div class="mb-3"><label for="username" class="form-label">Nombre de Usuario del Empleado</label><input type="text" class="form-control" id="username" name="username" required></div>
+                    <div class="mb-3"><label for="password" class="form-label">Contraseña Temporal</label><input type="password" class="form-control" id="password" name="password" required>
+                        <div class="form-text">El empleado podrá cambiar esta contraseña más tarde.</div></div>
                     <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
                         <a href="{{ url_for('gestionar_usuarios') }}" class="btn btn-secondary">Cancelar</a>
                         <button type="submit" class="btn btn-primary">Crear Empleado</button>

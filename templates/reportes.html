@@ -4,7 +4,7 @@
 <h1 class="mb-3">Reportes</h1>
 <div class="row">
     <div class="col-lg-8 mb-4">
-        <div class="card h-100"><div class="card-header"><i class="bi bi-bar-chart-fill me-2"></i>Top 5 Productos con Más Stock</div><div class="card-body"><canvas id="graficoStock"></canvas></div></div>
+        <div class="card h-100"><div class="card-header"><i class="bi bi-bar-chart-fill me-2"></i>Top 5 Productos con Más Stock</div><div class="card-body p-4"><canvas id="graficoStock"></canvas></div></div>
     </div>
     <div class="col-lg-4 mb-4">
         <div class="card h-100"><div class="card-header"><i class="bi bi-pie-chart-fill me-2"></i>Distribución por Marca</div><div class="card-body d-flex align-items-center justify-content-center"><canvas id="graficoMarcas" style="max-height: 300px;"></canvas></div></div>
@@ -13,7 +13,7 @@
 <div class="card mt-2">
     <div class="card-header"><h2><i class="bi bi-file-earmark-spreadsheet me-2"></i>Exportar Datos</h2></div>
     <div class="card-body">
-        <p class="text-white-50">Genera un archivo CSV con todos los productos del inventario para su análisis.</p>
+        <p class="text-secondary">Genera un archivo CSV con todos los productos activos del inventario para su análisis.</p>
         <a href="{{ url_for('exportar_csv') }}" class="btn btn-success">Exportar Inventario a CSV</a>
     </div>
 </div>
@@ -22,7 +22,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     Chart.defaults.color = '#adb5bd';
-    const ctxStock=document.getElementById("graficoStock"),stockLabels=JSON.parse('{{ stock_labels|safe }}'),stockData=JSON.parse('{{ stock_data|safe }}');new Chart(ctxStock,{type:"bar",data:{labels:stockLabels,datasets:[{label:"Cantidad en Stock",data:stockData,backgroundColor:"rgba(13, 110, 253, 0.7)",borderColor:"rgba(13, 110, 253, 1)",borderWidth:1}]},options:{indexAxis:"y",scales:{x:{beginAtZero:!0}},responsive:!0,plugins:{legend:{display:!1}}}});
-    const ctxMarcas=document.getElementById("graficoMarcas"),marcaLabels=JSON.parse('{{ marca_labels|safe }}'),marcaData=JSON.parse('{{ marca_data|safe }}');new Chart(ctxMarcas,{type:"doughnut",data:{labels:marcaLabels,datasets:[{label:"# de Productos",data:marcaData,backgroundColor:["#0d6efd","#6f42c1","#d63384","#fd7e14","#198754","#ffc107"],hoverOffset:4}]},options:{responsive:!0}});
+    const ctxStock=document.getElementById("graficoStock"),stockLabels=JSON.parse('{{ stock_labels|safe }}'),stockData=JSON.parse('{{ stock_data|safe }}');new Chart(ctxStock,{type:"bar",data:{labels:stockLabels,datasets:[{label:"Cantidad en Stock",data:stockData,backgroundColor:"rgba(0, 245, 212, 0.7)",borderColor:"rgba(0, 245, 212, 1)",borderWidth:1}]},options:{indexAxis:"y",scales:{x:{beginAtZero:!0}},responsive:!0,plugins:{legend:{display:!1}}}});
+    const ctxMarcas=document.getElementById("graficoMarcas"),marcaLabels=JSON.parse('{{ marca_labels|safe }}'),marcaData=JSON.parse('{{ marca_data|safe }}');new Chart(ctxMarcas,{type:"doughnut",data:{labels:marcaLabels,datasets:[{label:"# de Productos",data:marcaData,backgroundColor:["#00f5d4","#0d6efd","#6f42c1","#d63384","#fd7e14","#ffc107"],hoverOffset:4}]},options:{responsive:!0}});
 </script>
 {% endblock %}

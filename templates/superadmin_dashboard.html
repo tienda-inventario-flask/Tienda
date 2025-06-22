@@ -10,19 +10,22 @@
     <div class="card-header"><h5 class="mb-0">Empresas Registradas</h5></div>
     <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-hover mb-0">
-                <thead><tr><th>ID</th><th>Nombre de la Empresa</th><th>Dirección</th><th>Teléfono</th><th>RNC</th></tr></thead>
+            <table class="table table-hover align-middle mb-0">
+                <thead><tr><th>ID</th><th>Nombre de la Empresa</th><th>Usuarios</th><th>Acciones</th></tr></thead>
                 <tbody>
                     {% for empresa in empresas %}
                     <tr>
                         <td>{{ empresa.id }}</td>
                         <td>{{ empresa.nombre_empresa }}</td>
-                        <td>{{ empresa.direccion or 'N/A' }}</td>
-                        <td>{{ empresa.telefono or 'N/A' }}</td>
-                        <td>{{ empresa.rnc or 'N/A' }}</td>
+                        <td>{{ empresa.user_count }}</td>
+                        <td>
+                            <form action="{{ url_for('eliminar_empresa', empresa_id=empresa.id) }}" method="POST" onsubmit="return confirm('¿Estás SEGURO de que quieres eliminar esta empresa? Esta acción es PERMANENTE y borrará TODOS sus usuarios, productos y ventas.');">
+                                <button type="submit" class="btn btn-danger btn-sm"><i class="bi bi-trash-fill me-1"></i> Eliminar</button>
+                            </form>
+                        </td>
                     </tr>
                     {% else %}
-                    <tr><td colspan="5" class="text-center text-muted p-4">No hay empresas cliente registradas.</td></tr>
+                    <tr><td colspan="4" class="text-center text-muted p-4">No hay empresas cliente registradas.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
