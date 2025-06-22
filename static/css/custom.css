@@ -54,3 +54,24 @@ a:hover { color: var(--accent-color-hover); }
     .sidebar { display: none !important; }
     .main-content { margin-left: 0; width: 100%; }
 }
+/* Añade esto al final de static/css/custom.css */
+
+.search-result-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+.search-result-item .product-info {
+    line-height: 1.2;
+}
+
+.search-result-item .product-name {
+    font-weight: 500;
+}
+
+.search-result-item .product-details {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
