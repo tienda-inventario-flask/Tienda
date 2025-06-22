@@ -6,11 +6,21 @@
     <a href="{{ url_for('mostrar_inventario') }}" class="btn btn-secondary">Volver al Inventario Activo</a>
 </div>
 <p class="text-white-50 mb-4">Estos productos no están a la venta y no aparecen en las búsquedas, pero su historial se conserva.</p>
+
 <div class="card">
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table table-hover table-striped align-middle mb-0">
-                <thead class="table-dark"><tr><th>ID</th><th>Nombre</th><th>Marca</th><th>Modelo</th><th class="text-center">Stock Actual</th><th>Acción</th></tr></thead>
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Marca</th>
+                        <th>Modelo</th>
+                        <th class="text-center">Stock Actual</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
                 <tbody>
                     {% for producto in inventario %}
                     <tr>
@@ -19,15 +29,25 @@
                         <td>{{ producto.marca }}</td>
                         <td>{{ producto.modelo }}</td>
                         <td class="text-center">{{ producto.cantidad }}</td>
-                        <td><a href="{{ url_for('reactivar_producto', producto_id=producto.id) }}" class="btn btn-success btn-sm"><i class="bi bi-arrow-counterclockwise me-1"></i> Reactivar</a></td>
+                        <td>
+                            <form action="{{ url_for('reactivar_producto', producto_id=producto.id) }}" method="POST" class="d-inline">
+                                <button type="submit" class="btn btn-success btn-sm">
+                                    <i class="bi bi-arrow-counterclockwise"></i> Reactivar
+                                </button>
+                            </form>
+                        </td>
                     </tr>
                     {% else %}
-                    <tr><td colspan="6" class="text-center text-muted p-5">No hay productos archivados.</td></tr>
+                    <tr>
+                        <td colspan="6" class="text-center text-muted p-5">No hay productos archivados.</td>
+                    </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
     </div>
-    {% if total_pages > 1 %}<div class="card-footer bg-transparent"><nav><ul class="pagination justify-content-center mb-0"><li class="page-item {{ 'disabled' if page <= 1 else '' }}"><a class="page-link" href="{{ url_for('ver_archivados', page=page-1) }}">Anterior</a></li><li class="page-item active"><span class="page-link">{{ page }}</span></li><li class="page-item {{ 'disabled' if page >= total_pages else '' }}"><a class="page-link" href="{{ url_for('ver_archivados', page=page+1) }}">Siguiente</a></li></ul></nav></div>{% endif %}
+    {% if total_pages > 1 %}
+    <div class="card-footer bg-transparent"><nav><ul class="pagination justify-content-center mb-0"><li class="page-item {{ 'disabled' if page <= 1 else '' }}"><a class="page-link" href="{{ url_for('ver_archivados', page=page-1) }}">Anterior</a></li><li class="page-item active"><span class="page-link">{{ page }}</span></li><li class="page-item {{ 'disabled' if page >= total_pages else '' }}"><a class="page-link" href="{{ url_for('ver_archivados', page=page+1) }}">Siguiente</a></li></ul></nav></div>
+    {% endif %}
 </div>
 {% endblock %}

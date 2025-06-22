@@ -327,10 +327,11 @@ def editar_producto(producto_id):
         return redirect(url_for('mostrar_inventario'))
     return render_template('editar_producto.html', producto=producto)
 
-@app.route('/eliminar/<int:producto_id>', methods=['POST'])
+@app.route('/eliminar/<int:producto_id>', methods=['POST']) # <-- AÑADIR/VERIFICAR ESTO
 @login_required
 @admin_required
 def eliminar_producto(producto_id):
+    # ... (la lógica interna no cambia)
     producto = get_producto(producto_id)
     if producto:
         conn = get_db_connection()
@@ -360,21 +361,22 @@ def ver_archivados():
     conn.close()
     return render_template('archivados.html', inventario=productos_archivados, page=page, total_pages=total_pages, PER_PAGE=PER_PAGE)
 
-@app.route('/reactivar/<int:producto_id>', methods=['POST'])
+@app.route('/eliminar/<int:producto_id>', methods=['POST']) # <-- AÑADIR/VERIFICAR ESTO
 @login_required
 @admin_required
-def reactivar_producto(producto_id):
+def eliminar_producto(producto_id):
+    # ... (la lógica interna no cambia)
     producto = get_producto(producto_id)
     if producto:
         conn = get_db_connection()
         with conn.cursor() as cur:
-            cur.execute('UPDATE productos SET activo = TRUE WHERE id = %s AND empresa_id = %s', (producto_id, session['empresa_id']))
+            cur.execute('UPDATE productos SET activo = FALSE WHERE id = %s AND empresa_id = %s', (producto_id, session['empresa_id']))
         conn.commit()
         conn.close()
-        registrar_actividad('PRODUCTO_REACTIVADO', f"Reactivó el producto '{producto['nombre']}' (ID: {producto_id}).")
-        flash('Producto reactivado con éxito.', 'success')
+        registrar_actividad('PRODUCTO_DESACTIVADO', f"Archivó el producto '{producto['nombre']}' (ID: {producto_id}).")
+        flash('Producto archivado con éxito.', 'warning')
     else: flash('Producto no encontrado.', 'danger')
-    return redirect(url_for('ver_archivados'))
+    return redirect(url_for('mostrar_inventario'))
 
 @app.route('/reportes')
 @login_required
@@ -510,7 +512,9 @@ def ver_historial():
 
 @app.route('/pos')
 @login_required
-def pos(): return render_template('pos.html')
+def pos():
+    # Ya no necesitamos pasarle los productos populares, solo renderizar la plantilla.
+    return render_template('pos.html')
 
 @app.route('/api/buscar_productos')
 @login_required
