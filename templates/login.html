@@ -2,46 +2,37 @@
 
 {% block title %}Iniciar Sesión{% endblock %}
 
-{% block styles %}
-<style>
-    /* Estilos para centrar el formulario en toda la pantalla */
-    body {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 100vh;
-        padding: 1.5rem;
-    }
-    .container {
-        max-width: 450px;
-    }
-</style>
-{% endblock %}
-
 {% block content %}
-<div class="text-center mb-4">
-    <i class="bi bi-box-seam-fill me-2 fs-1 text-primary"></i>
-    <h1 class="h3 fw-bold">Inven<span class="text-primary">Sys</span></h1>
-</div>
-<div class="card border-0 shadow-sm">
-    <div class="card-body p-4 p-md-5">
-        <h2 class="card-title text-center h4 mb-4">Acceso al Sistema</h2>
-        
-        {% with messages = get_flashed_messages(with_categories=true) %}
-          {% if messages %}{% for category, message in messages %}<div class="alert alert-{{ category }}">{{ message }}</div>{% endfor %}{% endif %}
-        {% endwith %}
-        
-        <form method="POST">
-            <div class="form-floating mb-3">
-                <input type="text" class="form-control" id="username" name="username" placeholder="Usuario" required>
-                <label for="username">Nombre de Usuario</label>
+<div class="auth-wrapper">
+    <div style="width: 100%; max-width: 400px;">
+        <div class="text-center mb-4">
+            <i class="bi bi-box-seam-fill me-2 fs-1" style="color: var(--accent-color);"></i>
+            <h1 class="h3 fw-bold">Inven<span style="color: var(--accent-color);">Sys</span></h1>
+        </div>
+        <div class="card">
+            <div class="card-body p-4 p-md-5">
+                <h2 class="card-title text-center h4 mb-4">Acceso al Sistema</h2>
+                
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                  {% if messages %}{% for category, message in messages %}<div class="alert alert-{{ category }}">{{ message }}</div>{% endfor %}{% endif %}
+                {% endwith %}
+                
+                <form method="POST">
+                    <div class="form-floating mb-3">
+                        <input type="text" class="form-control" id="username" name="username" placeholder="Usuario" required>
+                        <label for="username">Nombre de Usuario</label>
+                    </div>
+                    <div class="form-floating mb-3">
+                        <input type="password" class="form-control" id="password" name="password" placeholder="Contraseña" required>
+                        <label for="password">Contraseña</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 btn-lg mt-3">Entrar</button>
+                </form>
             </div>
-            <div class="form-floating mb-3">
-                <input type="password" class="form-control" id="password" name="password" placeholder="Contraseña" required>
-                <label for="password">Contraseña</label>
-            </div>
-            <button type="submit" class="btn btn-primary w-100 btn-lg mt-3">Entrar</button>
-        </form>
+        </div>
+        <div class="text-center mt-4">
+            <a href="{{ url_for('registro') }}" class="text-muted small">Registrar una nueva empresa</a>
+        </div>
     </div>
 </div>
 {% endblock %}
