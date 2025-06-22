@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Crear Nueva Empresa{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header"><h3 class="mb-0">Crear Nueva Cuenta de Cliente</h3></div>
+            <div class="card-body p-4">
+                <form method="POST">
+                    <h5 class="mb-3">Datos de la Empresa</h5>
+                    <div class="mb-3"><label for="nombre_empresa" class="form-label">Nombre de la Empresa</label><input type="text" class="form-control" id="nombre_empresa" name="nombre_empresa" required></div>
+                    <hr class="my-4">
+                    <h5 class="mb-3">Datos del Administrador Inicial para esta Empresa</h5>
+                     <div class="mb-3"><label for="admin_username" class="form-label">Nombre de Usuario del Admin</label><input type="text" class="form-control" id="admin_username" name="admin_username" required></div>
+                    <div class="mb-3"><label for="admin_password" class="form-label">Contraseña para el Admin</label><input type="password" class="form-control" id="admin_password" name="admin_password" required></div>
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                        <a href="{{ url_for('superadmin_dashboard') }}" class="btn btn-secondary">Cancelar</a>
+                        <button type="submit" class="btn btn-primary">Crear Cuenta</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
