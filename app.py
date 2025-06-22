@@ -11,12 +11,10 @@ from flask import Flask, render_template, request, redirect, url_for, flash, ses
 from functools import wraps
 from dotenv import load_dotenv
 
-# Carga las variables de entorno del archivo .env (para desarrollo local)
 load_dotenv()
 
 app = Flask(__name__)
-# La clave secreta ahora se lee de una variable de entorno para mayor seguridad en producción
-app.secret_key = os.environ.get('SECRET_KEY', 'una_clave_secreta_por_defecto_para_desarrollo_local_muy_larga')
+app.secret_key = os.environ.get('SECRET_KEY', 'ricardo123')
 PER_PAGE = 10
 
 # --- FUNCIÓN DE CONEXIÓN A POSTGRESQL ---
@@ -244,7 +242,6 @@ def cambiar_password():
         return redirect(url_for('cambiar_password'))
     return render_template('cambiar_password.html')
 
-
 # --- RUTAS PRINCIPALES Y CRUD ---
 @app.route('/')
 @login_required
@@ -376,7 +373,7 @@ def reactivar_producto(producto_id):
     else: flash('Producto no encontrado.', 'danger')
     return redirect(url_for('ver_archivados'))
 
-# --- RUTAS DE REPORTES Y ADMIN ---
+# --- RUTAS DE REPORTES, ADMIN, POS y APIs ---
 @app.route('/reportes')
 @login_required
 def reportes():
@@ -388,8 +385,10 @@ def reportes():
         cur.execute('SELECT marca, COUNT(id) as total FROM productos WHERE empresa_id = %s AND activo = TRUE GROUP BY marca', (empresa_id,))
         productos_por_marca = cur.fetchall()
     conn.close()
-    stock_labels, stock_data = [row['nombre'] for row in top_stock_productos], [row['cantidad'] for row in top_stock_productos]
-    marca_labels, marca_data = [row['marca'] for row in productos_por_marca], [row['total'] for row in productos_por_marca]
+    stock_labels = [row['nombre'] for row in top_stock_productos]
+    stock_data = [row['cantidad'] for row in top_stock_productos]
+    marca_labels = [row['marca'] for row in productos_por_marca]
+    marca_data = [row['total'] for row in productos_por_marca]
     return render_template('reportes.html', stock_labels=json.dumps(stock_labels), stock_data=json.dumps(stock_data), marca_labels=json.dumps(marca_labels), marca_data=json.dumps(marca_data))
 
 @app.route('/exportar_csv')
@@ -587,7 +586,7 @@ def procesar_venta():
         flash(f"Error al procesar la venta: {e}", 'danger')
         return redirect(url_for('pos'))
     finally:
-        if conn: conn.close()
+        conn.close()
 
 @app.route('/factura/<string:transaccion_id>')
 @login_required
