@@ -44,5 +44,22 @@
             </table>
         </div>
     </div>
+    {% if total_pages > 1 %}
+    <div class="card-footer bg-transparent">
+        <nav>
+            <ul class="pagination justify-content-center mb-0">
+                <li class="page-item {{ 'disabled' if page <= 1 else '' }}">
+                    <a class="page-link" href="{{ url_for('ver_archivados', page=page-1) }}">Anterior</a>
+                </li>
+                <li class="page-item active" aria-current="page">
+                  <span class="page-link">Página {{ page }} de {{ total_pages }}</span>
+                </li>
+                <li class="page-item {{ 'disabled' if page >= total_pages else '' }}">
+                    <a class="page-link" href="{{ url_for('ver_archivados', page=page+1) }}">Siguiente</a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}

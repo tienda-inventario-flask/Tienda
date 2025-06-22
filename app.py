@@ -70,7 +70,7 @@ def login():
         username, password = request.form['username'], request.form['password']
         conn = get_db_connection()
         if not conn:
-            flash('Error de conexión con la base de datos.', 'danger')
+            flash('Error de conexión con la base de datos. Inténtalo más tarde.', 'danger')
             return render_template('login.html')
         try:
             with conn.cursor(cursor_factory=DictCursor) as cur:
@@ -134,7 +134,8 @@ def editar_empresa():
         if not nombre_empresa: flash('El nombre de la empresa no puede estar vacío.', 'danger')
         else:
             with conn.cursor() as cur:
-                cur.execute('UPDATE empresas SET nombre_empresa = %s, direccion = %s, telefono = %s, rnc = %s WHERE id = %s', (nombre_empresa, direccion, telefono, rnc, empresa_id))
+                cur.execute('UPDATE empresas SET nombre_empresa = %s, direccion = %s, telefono = %s, rnc = %s WHERE id = %s',
+                             (nombre_empresa, direccion, telefono, rnc, empresa_id))
             conn.commit()
             session['nombre_empresa'] = nombre_empresa
             registrar_actividad('EMPRESA_EDITADA', 'Se actualizaron los datos del perfil de la empresa.')
@@ -265,17 +266,22 @@ def eliminar_producto(producto_id):
     else: flash('Producto no encontrado.', 'danger')
     return redirect(url_for('mostrar_inventario'))
 
-# --- RUTAS DE ARCHIVADOS ---
 @app.route('/inventario/archivados')
 @login_required
 @admin_required
 def ver_archivados():
     conn = get_db_connection()
+    page = request.args.get('page', 1, type=int)
+    offset = (page - 1) * PER_PAGE
     with conn.cursor(cursor_factory=DictCursor) as cur:
-        cur.execute('SELECT * FROM productos WHERE empresa_id = %s AND activo = FALSE ORDER BY id DESC', (session['empresa_id'],))
+        cur.execute('SELECT COUNT(id) AS total FROM productos WHERE empresa_id = %s AND activo = FALSE', (session['empresa_id'],))
+        total_items = cur.fetchone()['total'] or 0
+        total_pages = math.ceil(total_items / PER_PAGE)
+        cur.execute('SELECT * FROM productos WHERE empresa_id = %s AND activo = FALSE ORDER BY id DESC LIMIT %s OFFSET %s',
+                    (session['empresa_id'], PER_PAGE, offset))
         productos_archivados = cur.fetchall()
     conn.close()
-    return render_template('archivados.html', inventario=productos_archivados)
+    return render_template('archivados.html', inventario=productos_archivados, page=page, total_pages=total_pages, PER_PAGE=PER_PAGE)
 
 @app.route('/reactivar/<int:producto_id>')
 @login_required
@@ -292,7 +298,6 @@ def reactivar_producto(producto_id):
         flash('Producto reactivado con éxito.', 'success')
     else: flash('Producto no encontrado.', 'danger')
     return redirect(url_for('ver_archivados'))
-
 
 # --- RUTAS DE REPORTES, ADMIN, POS y APIs ---
 @app.route('/reportes')
