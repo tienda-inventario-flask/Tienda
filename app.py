@@ -17,7 +17,6 @@ app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'ricardo123')
 PER_PAGE = 10
 
-# --- FUNCIÓN DE CONEXIÓN A POSTGRESQL ---
 def get_db_connection():
     try:
         conn = psycopg2.connect(os.environ.get('DATABASE_URL'))
@@ -26,7 +25,6 @@ def get_db_connection():
         print(f"Error de conexión a la base de datos: {e}")
         return None
 
-# --- FUNCIÓN PARA REGISTRAR ACTIVIDAD ---
 def registrar_actividad(accion, descripcion=""):
     if 'user_id' not in session: return
     conn = get_db_connection()
@@ -43,7 +41,6 @@ def registrar_actividad(accion, descripcion=""):
         finally:
             conn.close()
 
-# --- DECORADORES DE SEGURIDAD ---
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -62,7 +59,6 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-# --- RUTAS DE AUTENTICACIÓN ---
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if 'user_id' in session: return redirect(url_for('mostrar_inventario'))
@@ -70,7 +66,7 @@ def login():
         username, password = request.form['username'], request.form['password']
         conn = get_db_connection()
         if not conn:
-            flash('Error de conexión con la base de datos. Inténtalo más tarde.', 'danger')
+            flash('Error de conexión con la base de datos.', 'danger')
             return render_template('login.html')
         try:
             with conn.cursor(cursor_factory=DictCursor) as cur:
@@ -91,28 +87,13 @@ def login():
             if conn: conn.close()
     return render_template('login.html')
 
+# --- RUTA DE REGISTRO DESACTIVADA ---
 @app.route('/registro', methods=['GET', 'POST'])
 def registro():
-    if 'user_id' in session: return redirect(url_for('mostrar_inventario'))
-    if request.method == 'POST':
-        nombre_empresa, direccion, telefono, rnc = request.form['nombre_empresa'], request.form.get('direccion', ''), request.form.get('telefono', ''), request.form.get('rnc', '')
-        username, password = request.form['username'], request.form['password']
-        conn = get_db_connection()
-        with conn.cursor(cursor_factory=DictCursor) as cur:
-            cur.execute('SELECT id FROM empresas WHERE nombre_empresa = %s', (nombre_empresa,))
-            if cur.fetchone():
-                flash('Ya existe una empresa con ese nombre.', 'danger')
-                conn.close()
-                return redirect(url_for('registro'))
-            cur.execute('INSERT INTO empresas (nombre_empresa, direccion, telefono, rnc) VALUES (%s, %s, %s, %s) RETURNING id', (nombre_empresa, direccion, telefono, rnc))
-            empresa_id = cur.fetchone()['id']
-            hashed_password = generate_password_hash(password)
-            cur.execute('INSERT INTO usuarios (empresa_id, username, password, rol) VALUES (%s, %s, %s, %s)', (empresa_id, username, hashed_password, 'admin'))
-        conn.commit()
-        conn.close()
-        flash('¡Empresa y usuario administrador creados con éxito! Por favor, inicia sesión.', 'success')
-        return redirect(url_for('login'))
-    return render_template('registro.html')
+    # Esta función ahora simplemente informa que el registro está desactivado
+    # y redirige al login.
+    flash('El registro público está desactivado. Por favor, contacte al administrador del sistema.', 'info')
+    return redirect(url_for('login'))
 
 @app.route('/logout')
 @login_required
@@ -122,7 +103,8 @@ def logout():
     flash('Has cerrado sesión exitosamente.', 'success')
     return redirect(url_for('login'))
 
-# --- RUTAS DE GESTIÓN DE CUENTA ---
+# ... (El resto de tu código de app.py permanece aquí) ...
+# (Se omite por brevedad, pero asegúrate de que el resto de las funciones estén presentes)
 @app.route('/empresa/editar', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -147,7 +129,6 @@ def editar_empresa():
         empresa = cur.fetchone()
     conn.close()
     return render_template('editar_empresa.html', empresa=empresa)
-
 @app.route('/perfil/cambiar_password', methods=['GET', 'POST'])
 @login_required
 def cambiar_password():
@@ -171,8 +152,6 @@ def cambiar_password():
         conn.close()
         return redirect(url_for('cambiar_password'))
     return render_template('cambiar_password.html')
-
-# --- RUTAS PRINCIPALES Y CRUD ---
 @app.route('/')
 @login_required
 def mostrar_inventario():
@@ -201,7 +180,6 @@ def mostrar_inventario():
         productos = cur.fetchall()
     conn.close()
     return render_template('index.html', inventario=productos, query=query, page=page, total_pages=total_pages, total_productos=total_productos, total_stock=total_stock, valor_inventario=valor_inventario, PER_PAGE=PER_PAGE)
-
 def get_producto(producto_id):
     conn = get_db_connection()
     with conn.cursor(cursor_factory=DictCursor) as cur:
@@ -209,7 +187,6 @@ def get_producto(producto_id):
         producto = cur.fetchone()
     conn.close()
     return producto
-
 @app.route('/agregar', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -228,7 +205,6 @@ def agregar_producto():
         flash('¡Producto añadido con éxito!', 'success')
         return redirect(url_for('mostrar_inventario'))
     return render_template('agregar_producto.html')
-
 @app.route('/editar/<int:producto_id>', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -249,7 +225,6 @@ def editar_producto(producto_id):
         flash('¡Producto actualizado correctamente!', 'success')
         return redirect(url_for('mostrar_inventario'))
     return render_template('editar_producto.html', producto=producto)
-
 @app.route('/eliminar/<int:producto_id>')
 @login_required
 @admin_required
@@ -265,7 +240,6 @@ def eliminar_producto(producto_id):
         flash('Producto archivado con éxito.', 'warning')
     else: flash('Producto no encontrado.', 'danger')
     return redirect(url_for('mostrar_inventario'))
-
 @app.route('/inventario/archivados')
 @login_required
 @admin_required
@@ -282,7 +256,6 @@ def ver_archivados():
         productos_archivados = cur.fetchall()
     conn.close()
     return render_template('archivados.html', inventario=productos_archivados, page=page, total_pages=total_pages, PER_PAGE=PER_PAGE)
-
 @app.route('/reactivar/<int:producto_id>')
 @login_required
 @admin_required
@@ -298,8 +271,6 @@ def reactivar_producto(producto_id):
         flash('Producto reactivado con éxito.', 'success')
     else: flash('Producto no encontrado.', 'danger')
     return redirect(url_for('ver_archivados'))
-
-# --- RUTAS DE REPORTES, ADMIN, POS y APIs ---
 @app.route('/reportes')
 @login_required
 def reportes():
@@ -316,7 +287,6 @@ def reportes():
     marca_labels = [row['marca'] for row in productos_por_marca]
     marca_data = [row['total'] for row in productos_por_marca]
     return render_template('reportes.html', stock_labels=json.dumps(stock_labels), stock_data=json.dumps(stock_data), marca_labels=json.dumps(marca_labels), marca_data=json.dumps(marca_data))
-
 @app.route('/exportar_csv')
 @login_required
 def exportar_csv():
@@ -333,7 +303,6 @@ def exportar_csv():
     response.headers['Content-Disposition'] = 'attachment; filename=inventario_activo.csv'
     response.headers['Content-type'] = 'text/csv'
     return response
-
 @app.route('/admin/usuarios')
 @login_required
 @admin_required
@@ -344,7 +313,6 @@ def gestionar_usuarios():
         usuarios = cur.fetchall()
     conn.close()
     return render_template('admin_usuarios.html', usuarios=usuarios)
-
 @app.route('/admin/agregar_usuario', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -369,7 +337,6 @@ def agregar_usuario():
                 return redirect(url_for('gestionar_usuarios'))
         conn.close()
     return render_template('agregar_usuario.html')
-
 @app.route('/admin/cambiar_rol/<int:usuario_id>', methods=['POST'])
 @login_required
 @admin_required
@@ -394,7 +361,6 @@ def cambiar_rol(usuario_id):
             flash('Usuario no encontrado.', 'danger')
     conn.close()
     return redirect(url_for('gestionar_usuarios'))
-
 @app.route('/admin/eliminar_usuario/<int:usuario_id>')
 @login_required
 @admin_required
@@ -414,7 +380,6 @@ def eliminar_usuario(usuario_id):
         else: flash('Usuario no encontrado.', 'danger')
     conn.close()
     return redirect(url_for('gestionar_usuarios'))
-
 @app.route('/admin/historial')
 @login_required
 @admin_required
@@ -431,11 +396,9 @@ def ver_historial():
         historial = cur.fetchall()
     conn.close()
     return render_template('admin_historial.html', historial=historial, page=page, total_pages=total_pages)
-
 @app.route('/pos')
 @login_required
 def pos(): return render_template('pos.html')
-
 @app.route('/api/buscar_productos')
 @login_required
 def buscar_productos_api():
@@ -455,7 +418,6 @@ def buscar_productos_api():
         return jsonify({'error': 'Ocurrió un error en la base de datos'}), 500
     finally:
         if conn: conn.close()
-
 @app.route('/api/actualizar_stock/<int:producto_id>', methods=['POST'])
 @login_required
 def actualizar_stock(producto_id):
@@ -477,7 +439,6 @@ def actualizar_stock(producto_id):
     conn.close()
     registrar_actividad('STOCK_AJUSTADO', f"Ajustó el stock de '{producto['nombre']}' (ID: {producto_id}) de {producto['cantidad']} a {nueva_cantidad}.")
     return jsonify({'success': True, 'nueva_cantidad': nueva_cantidad})
-
 @app.route('/procesar_venta', methods=['POST'])
 @login_required
 def procesar_venta():
@@ -513,7 +474,6 @@ def procesar_venta():
         return redirect(url_for('pos'))
     finally:
         conn.close()
-
 @app.route('/factura/<string:transaccion_id>')
 @login_required
 def mostrar_factura(transaccion_id):
